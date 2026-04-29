@@ -1,0 +1,30 @@
+{
+  "name": "verdan-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.3"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-query": "^5.96.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "axios": "^1.14.0",
+    "lucide-react": "^1.7.0",
+    "react-hook-form": "^7.72.0",
+    "react-router-dom": "^7.14.0",
+    "sonner": "^2.0.7",
+    "tailwindcss": "^4.2.2",
+    "zod": "^4.3.6"
+  }
+}

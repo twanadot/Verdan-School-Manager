@@ -1,0 +1,38 @@
+services:
+  verdan-api:
+    build: .
+    container_name: verdan-api
+    ports:
+      - "8081:8080"
+    volumes:
+      - verdan_data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # Local MySQL is no longer needed — using AWS RDS
+  # Uncomment below if you want to run locally without AWS:
+  # mysql-db:
+  #   image: mysql:8.0
+  #   container_name: verdan-mysql
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=secret
+  #     - MYSQL_DATABASE=verdan_db
+  #   ports:
+  #     - "3306:3306"
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   restart: unless-stopped
+
+  verdan-web:
+    build: ./verdan-web
+    container_name: verdan-web
+    ports:
+      - "4000:80"
+    depends_on:
+      - verdan-api
+    restart: unless-stopped
+
+volumes:
+  verdan_data:
+

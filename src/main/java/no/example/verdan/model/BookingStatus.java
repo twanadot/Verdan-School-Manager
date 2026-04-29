@@ -1,0 +1,1 @@
+package no.example.verdan.model; public enum BookingStatus { CONFIRMED, CANCELLED, PENDING }

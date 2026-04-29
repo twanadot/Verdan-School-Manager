@@ -1,0 +1,127 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ═══════════════════════════════════════════════
+  # Backend: Build & Test (Java 21 + Maven + MySQL)
+  # ═══════════════════════════════════════════════
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpass
+          MYSQL_DATABASE: verdan_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u root -ptestpass --silent 2>/dev/null; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: Build (compile + package)
+        run: mvn clean package -B -DskipTests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: testpass
+          JWT_SECRET: ci-test-secret-do-not-use-in-production
+          MYSQL_SSL: "false"
+
+      - name: Run tests
+        run: mvn test -B
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: testpass
+          JWT_SECRET: ci-test-secret-do-not-use-in-production
+          MYSQL_SSL: "false"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: target/surefire-reports/
+          retention-days: 14
+
+  # ═══════════════════════════════════════════════
+  # Frontend: Typecheck & Build (React + Vite)
+  # ═══════════════════════════════════════════════
+  frontend:
+    name: Frontend Build & Typecheck
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: verdan-web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: verdan-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Build production bundle
+        run: npm run build
+
+  # ═══════════════════════════════════════════════
+  # Docker: Verify images build successfully
+  # ═══════════════════════════════════════════════
+  docker:
+    name: Docker Build
+    needs: [backend, frontend]
+    if: always() && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t verdan-api:ci .
+
+      - name: Build Web image
+        run: docker build -t verdan-web:ci ./verdan-web

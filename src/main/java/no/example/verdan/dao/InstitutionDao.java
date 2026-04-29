@@ -1,0 +1,79 @@
+package no.example.verdan.dao;
+
+import java.util.List;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import no.example.verdan.model.Institution;
+import no.example.verdan.util.HibernateUtil;
+
+public class InstitutionDao extends BaseDao<Institution> {
+    public InstitutionDao() {
+        super(Institution.class);
+    }
+
+    /** Find all active institutions (excludes soft-deleted). */
+    public List<Institution> findAllActive() {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            return em.createQuery("from Institution i where i.active = true order by i.name", Institution.class)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /** Soft-delete: mark as inactive instead of removing from DB. */
+    public void softDelete(int id) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Institution inst = em.find(Institution.class, id);
+            if (inst == null) {
+                throw new IllegalArgumentException("Institution not found");
+            }
+            inst.setActive(false);
+            em.merge(inst);
+            tx.commit();
+        } catch (RuntimeException ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
+    }
+
+    /** Update institution name/location/level/ownership. */
+    public Institution updateInstitution(int id, String name, String location, String level, String ownership) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Institution inst = em.find(Institution.class, id);
+            if (inst == null) {
+                throw new IllegalArgumentException("Institution not found");
+            }
+            if (name != null && !name.isBlank()) {
+                inst.setName(name.trim());
+            }
+            if (location != null) {
+                inst.setLocation(location.trim());
+            }
+            if (level != null) {
+                inst.setLevel(level.trim());
+            }
+            if (ownership != null) {
+                inst.setOwnership(ownership.trim().toUpperCase());
+            }
+            em.merge(inst);
+            tx.commit();
+            return inst;
+        } catch (RuntimeException ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
+    }
+}

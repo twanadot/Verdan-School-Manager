@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@theme {
+  /* Dynamic UI Themes bound to CSS output */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-input: var(--bg-input);
+  --color-border: var(--border);
+  --color-border-focus: var(--border-focus);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-info: var(--info);
+
+  /* Sidebar */
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-hover: var(--sidebar-hover);
+
+  /* Badges */
+  --color-badge-admin: var(--badge-admin);
+  --color-badge-teacher: var(--badge-teacher);
+  --color-badge-student: var(--badge-student);
+  --color-badge-present: var(--badge-present);
+  --color-badge-absent: var(--badge-absent);
+  --color-badge-sick: var(--badge-sick);
+  --color-badge-late: var(--badge-late);
+}
+
+:root {
+  --bg-primary: #fafafa;
+  --bg-secondary: #ffffff; 
+  --bg-card: #ffffff;
+  --bg-hover: #f4f4f5;
+  --bg-input: #ffffff;
+  --border: #e4e4e7;
+  --border-focus: #0f766e;
+  
+  --text-primary: #27272a;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  
+  --accent: #0f766e;
+  --accent-hover: #115e59;
+  
+  --success: #16a34a; 
+  --warning: #d97706; 
+  --danger: #ef4444; 
+  --danger-hover: #dc2626; 
+  --info: #0284c7; 
+
+  --sidebar-bg: #ffffff;
+  --sidebar-active: #0f766e;
+  --sidebar-hover: #f4f4f5;
+
+  --badge-admin: #6366f1; 
+  --badge-teacher: #0ea5e9; 
+  --badge-student: #10b981; 
+  --badge-present: #10b981;
+  --badge-absent: #ef4444;
+  --badge-sick: #f59e0b; 
+  --badge-late: #f97316; 
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg-primary: #18181b;
+  --bg-secondary: #27272a;
+  --bg-card: #27272a;
+  --bg-hover: #3f3f46;
+  --bg-input: #18181b;
+  --border: #3f3f46; 
+  --border-focus: #2dd4bf;
+  
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  
+  --accent: #2dd4bf;
+  --accent-hover: #14b8a6;
+  
+  --success: #22c55e; 
+  --warning: #fbbf24; 
+  --danger: #f87171; 
+  --danger-hover: #ef4444; 
+  --info: #38bdf8; 
+
+  --sidebar-bg: #18181b; 
+  --sidebar-active: #2dd4bf;
+  --sidebar-hover: #27272a;
+
+  --badge-admin: #818cf8;
+  --badge-teacher: #38bdf8;
+  --badge-student: #34d399;
+  --badge-present: #34d399;
+  --badge-absent: #f87171;
+  --badge-sick: #fbbf24;
+  --badge-late: #fb923c;
+  
+  color-scheme: dark;
+}
+
+/* Base styles */
+body {
+  @apply bg-bg-primary text-text-primary transition-colors duration-200;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

@@ -1,0 +1,526 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Verdan University Manager API",
+    "description": "REST API for managing users, grades, attendance, bookings, subjects, and rooms at Verdan University.\n\nAll endpoints (except `/api/login` and `/api/health`) require a JWT Bearer token in the `Authorization` header.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Verdan Dev Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7070",
+      "description": "Local development"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "object" },
+          "error": { "type": "string" },
+          "errors": { "type": "array", "items": { "type": "string" } },
+          "timestamp": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "example": "admin" },
+          "password": { "type": "string", "example": "admin123" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "required": ["username", "password", "role"],
+        "properties": {
+          "username": { "type": "string", "example": "newuser" },
+          "password": { "type": "string", "example": "pass1234" },
+          "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+          "firstName": { "type": "string" },
+          "lastName": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" }
+        }
+      },
+      "Grade": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "studentUsername": { "type": "string" },
+          "studentName": { "type": "string" },
+          "subject": { "type": "string" },
+          "value": { "type": "string", "example": "A" },
+          "dateGiven": { "type": "string", "format": "date" },
+          "teacherUsername": { "type": "string" }
+        }
+      },
+      "GradeRequest": {
+        "type": "object",
+        "required": ["studentUsername", "subject", "value"],
+        "properties": {
+          "studentUsername": { "type": "string" },
+          "subject": { "type": "string", "example": "MATH101" },
+          "value": { "type": "string", "example": "B", "description": "Grade value: A-F or 1-6" }
+        }
+      },
+      "Attendance": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "studentUsername": { "type": "string" },
+          "studentName": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "status": { "type": "string", "enum": ["Present", "Absent", "Sick", "Late"] },
+          "subjectCode": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      },
+      "AttendanceRequest": {
+        "type": "object",
+        "required": ["studentUsername", "status", "subjectCode"],
+        "properties": {
+          "studentUsername": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "status": { "type": "string", "enum": ["Present", "Absent", "Sick", "Late"] },
+          "subjectCode": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      },
+      "Subject": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "SubjectRequest": {
+        "type": "object",
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string", "example": "CS101" },
+          "name": { "type": "string", "example": "Intro to CS" },
+          "description": { "type": "string" }
+        }
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "roomNumber": { "type": "string" },
+          "roomType": { "type": "string" },
+          "capacity": { "type": "integer" }
+        }
+      },
+      "RoomRequest": {
+        "type": "object",
+        "required": ["roomNumber", "capacity"],
+        "properties": {
+          "roomNumber": { "type": "string", "example": "A101" },
+          "roomType": { "type": "string", "example": "Lecture Hall" },
+          "capacity": { "type": "integer", "example": 30 }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "rooms": { "type": "array", "items": { "type": "string" } },
+          "startDateTime": { "type": "string", "format": "date-time" },
+          "endDateTime": { "type": "string", "format": "date-time" },
+          "status": { "type": "string" },
+          "description": { "type": "string" },
+          "createdBy": { "type": "string" },
+          "subject": { "type": "string" }
+        }
+      },
+      "BookingRequest": {
+        "type": "object",
+        "required": ["roomId", "startDateTime", "endDateTime", "subject"],
+        "properties": {
+          "roomId": { "type": "integer" },
+          "startDateTime": { "type": "string", "format": "date-time" },
+          "endDateTime": { "type": "string", "format": "date-time" },
+          "description": { "type": "string" },
+          "subject": { "type": "string" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "security": [],
+        "responses": {
+          "200": { "description": "API is running" }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login and get JWT token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful, returns JWT token and user info" },
+          "400": { "description": "Missing username or password" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List all users (ADMIN only)",
+        "parameters": [
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] }, "description": "Filter by role" }
+        ],
+        "responses": {
+          "200": { "description": "List of users" },
+          "403": { "description": "Insufficient permissions" }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create a new user (ADMIN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Username already exists" }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "User found" },
+          "403": { "description": "Students can only view own profile" },
+          "404": { "description": "User not found" }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User updated" },
+          "404": { "description": "User not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "204": { "description": "User deleted" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/api/grades": {
+      "get": {
+        "tags": ["Grades"],
+        "summary": "List grades (filtered by role)",
+        "responses": { "200": { "description": "List of grades" } }
+      },
+      "post": {
+        "tags": ["Grades"],
+        "summary": "Create a grade (ADMIN/TEACHER)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GradeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Grade created" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Student already has a grade in this subject" }
+        }
+      }
+    },
+    "/api/grades/{id}": {
+      "get": {
+        "tags": ["Grades"],
+        "summary": "Get grade by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Grade found" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Grades"],
+        "summary": "Update grade (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GradeRequest" } } } },
+        "responses": { "200": { "description": "Grade updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Grades"],
+        "summary": "Delete grade (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Grade deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/grades/student/{username}": {
+      "get": {
+        "tags": ["Grades"],
+        "summary": "Get grades for a student",
+        "parameters": [{ "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "List of grades" }, "403": { "description": "Access denied" } }
+      }
+    },
+    "/api/grades/stats/averages": {
+      "get": {
+        "tags": ["Grades"],
+        "summary": "Get average grades per subject (ADMIN/TEACHER)",
+        "responses": { "200": { "description": "Average grades" } }
+      }
+    },
+    "/api/attendance": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "List attendance (filtered by role)",
+        "responses": { "200": { "description": "List of attendance records" } }
+      },
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Register attendance (ADMIN/TEACHER)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AttendanceRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Attendance registered" }, "409": { "description": "Already registered" } }
+      }
+    },
+    "/api/attendance/{id}": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get attendance by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Record found" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Attendance"],
+        "summary": "Update attendance (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttendanceRequest" } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Attendance"],
+        "summary": "Delete attendance (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/attendance/student/{username}": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get attendance for student",
+        "parameters": [{ "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "List of records" }, "403": { "description": "Access denied" } }
+      }
+    },
+    "/api/attendance/stats/absence-rate/{username}": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get absence rate for student (ADMIN/TEACHER)",
+        "parameters": [{ "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Absence rate" } }
+      }
+    },
+    "/api/subjects": {
+      "get": {
+        "tags": ["Subjects"],
+        "summary": "List all subjects",
+        "responses": { "200": { "description": "List of subjects" } }
+      },
+      "post": {
+        "tags": ["Subjects"],
+        "summary": "Create subject (ADMIN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubjectRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Subject created" }, "409": { "description": "Code exists" } }
+      }
+    },
+    "/api/subjects/{id}": {
+      "get": {
+        "tags": ["Subjects"],
+        "summary": "Get subject by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Subject found" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Subjects"],
+        "summary": "Update subject (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubjectRequest" } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Subjects"],
+        "summary": "Delete subject (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/subjects/search": {
+      "get": {
+        "tags": ["Subjects"],
+        "summary": "Search subjects by name or code",
+        "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "List all rooms",
+        "responses": { "200": { "description": "List of rooms" } }
+      },
+      "post": {
+        "tags": ["Rooms"],
+        "summary": "Create room (ADMIN only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RoomRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Room created" } }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "tags": ["Rooms"],
+        "summary": "Get room by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Room found" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Rooms"],
+        "summary": "Update room (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoomRequest" } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Rooms"],
+        "summary": "Delete room and bookings (ADMIN only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/bookings": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "List all bookings",
+        "responses": { "200": { "description": "List of bookings" } }
+      },
+      "post": {
+        "tags": ["Bookings"],
+        "summary": "Create booking (ADMIN/TEACHER)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BookingRequest" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Booking created" }, "409": { "description": "Room already booked" } }
+      }
+    },
+    "/api/bookings/{id}": {
+      "get": {
+        "tags": ["Bookings"],
+        "summary": "Get booking by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Booking found" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Bookings"],
+        "summary": "Delete booking (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    }
+  },
+  "tags": [
+    { "name": "System", "description": "System health and status" },
+    { "name": "Authentication", "description": "Login and token management" },
+    { "name": "Users", "description": "User management (ADMIN)" },
+    { "name": "Grades", "description": "Grade management" },
+    { "name": "Attendance", "description": "Attendance tracking" },
+    { "name": "Subjects", "description": "Subject/course management" },
+    { "name": "Rooms", "description": "Room management" },
+    { "name": "Bookings", "description": "Room booking management" }
+  ]
+}

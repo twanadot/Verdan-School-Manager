@@ -1,0 +1,27 @@
+# Build output
+/target/
+
+# IDE settings
+.idea/
+.classpath
+.project
+*.iml
+
+# Logs
+/logs/
+*.log
+api_logs*.txt
+logs.txt
+
+# Database dumps
+*.sql
+
+# macOS metadata
+._*
+.DS_Store
+
+# Node modules (React frontend)
+node_modules/
+
+# Environment variables (contains secrets — never commit)
+.env
