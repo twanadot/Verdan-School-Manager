@@ -23,18 +23,18 @@ const SUBJECTS_LABEL: Record<string, string> = {
   UNGDOMSSKOLE: 'Klasser',
   VGS: 'Linjer',
   FAGSKOLE: 'Fagskole Grader',
-  UNIVERSITET: 'Degrees',
+  UNIVERSITET: 'Grader',
 };
 
 const getNavItems = (institutionLevel?: string): NavItem[] => [
-  { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, roles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
-  { to: '/institutions', label: 'Institutions', icon: <Building2 size={20} />, roles: ['SUPER_ADMIN'] },
-  { to: '/users', label: 'Users', icon: <Users size={20} />, roles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN'] },
-  { to: '/subjects', label: SUBJECTS_LABEL[institutionLevel || ''] || 'Subjects', icon: <BookOpen size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
-  { to: '/grades', label: 'Grades', icon: <GraduationCap size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
-  { to: '/attendance', label: 'Attendance', icon: <ClipboardList size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
-  { to: '/rooms', label: 'Rooms', icon: <DoorOpen size={20} />, roles: ['INSTITUTION_ADMIN'] },
-  { to: '/bookings', label: 'Bookings', icon: <Calendar size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
+  { to: '/dashboard', label: 'Oversikt', icon: <LayoutDashboard size={20} />, roles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
+  { to: '/institutions', label: 'Institusjoner', icon: <Building2 size={20} />, roles: ['SUPER_ADMIN'] },
+  { to: '/users', label: 'Brukere', icon: <Users size={20} />, roles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN'] },
+  { to: '/subjects', label: SUBJECTS_LABEL[institutionLevel || ''] || 'Fag', icon: <BookOpen size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
+  { to: '/grades', label: 'Karakterer', icon: <GraduationCap size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
+  { to: '/attendance', label: 'Fravær', icon: <ClipboardList size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
+  { to: '/rooms', label: 'Rom', icon: <DoorOpen size={20} />, roles: ['INSTITUTION_ADMIN'] },
+  { to: '/bookings', label: 'Timeplan', icon: <Calendar size={20} />, roles: ['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
   { to: '/chat', label: 'Chat', icon: <MessageSquare size={20} />, roles: ['SUPER_ADMIN', 'INSTITUTION_ADMIN', 'TEACHER', 'STUDENT'] },
   { to: '/reports', label: 'Uteksaminerte', icon: <GraduationCap size={20} />, roles: ['INSTITUTION_ADMIN'] },
   { to: '/portal', label: 'Søknadsportal', icon: <FileSearch size={20} />, roles: ['INSTITUTION_ADMIN', 'STUDENT'] },
@@ -146,7 +146,7 @@ export function Sidebar() {
             className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-danger hover:bg-danger/10 transition-colors ${collapsed ? 'justify-center p-2' : ''}`}
           >
             <LogOut size={18} />
-            {!collapsed && <span>Log out</span>}
+            {!collapsed && <span>Logg ut</span>}
           </button>
         </div>
       </aside>

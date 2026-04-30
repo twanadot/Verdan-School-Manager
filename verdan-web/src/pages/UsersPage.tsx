@@ -36,8 +36,8 @@ export function UsersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('User deleted'); setDeleteTarget(null); },
-    onError: () => toast.error('Failed to delete user'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Bruker slettet'); setDeleteTarget(null); },
+    onError: () => toast.error('Kunne ikke slette bruker'),
   });
 
   const filtered = users.filter(u =>
@@ -53,7 +53,7 @@ export function UsersPage() {
     return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-white ${colors[role] || 'bg-bg-hover'}`}>{role.replace('_', ' ')}</span>;
   };
 
-  if (isLoading) return <LoadingState message="Loading users..." />;
+  if (isLoading) return <LoadingState message="Laster brukere..." />;
 
   // SUPER_ADMIN view: institutions grouped by level with expandable admin lists
   if (isSuperAdmin) {
@@ -81,15 +81,15 @@ export function UsersPage() {
   return (
     <div>
       <PageHeader
-        title="Users"
-        description="Manage users in your institution"
+        title="Brukere"
+        description="Administrer brukere i din institusjon"
         action={
           <div className="flex gap-2">
             <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
               <Upload size={16} /> Importer elever
             </button>
             <button onClick={() => { setEditingUser(null); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors">
-              <Plus size={16} /> Add User
+              <Plus size={16} /> Legg til bruker
             </button>
           </div>
         }
@@ -102,7 +102,7 @@ export function UsersPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
+            placeholder="Søk brukere..."
             className="w-full pl-9 pr-4 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors"
           />
         </div>
@@ -111,30 +111,30 @@ export function UsersPage() {
           onChange={(e) => setRoleFilter(e.target.value)}
           className="px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus transition-colors"
         >
-          <option value="">All Roles</option>
-          <option value="INSTITUTION_ADMIN">Institution Admin</option>
-          <option value="TEACHER">Teacher</option>
-          <option value="STUDENT">Student</option>
+          <option value="">Alle roller</option>
+          <option value="INSTITUTION_ADMIN">Institusjonsadmin</option>
+          <option value="TEACHER">Lærer</option>
+          <option value="STUDENT">Elev</option>
         </select>
       </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <EmptyState title="No users found" message="Try adjusting your search or filter" />
+        <EmptyState title="Ingen brukere funnet" message="Prøv å justere søket eller filteret" />
       ) : (
         <div className="bg-bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-bg-primary/50 text-text-secondary text-left">
-                <th className="px-4 py-3 font-medium">Username</th>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Gender</th>
+                <th className="px-4 py-3 font-medium">Brukernavn</th>
+                <th className="px-4 py-3 font-medium">Navn</th>
+                <th className="px-4 py-3 font-medium">Kjønn</th>
                 <th className="px-4 py-3 font-medium">Fødselsdato</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Institution</th>
-                <th className="px-4 py-3 font-medium w-24">Actions</th>
+                <th className="px-4 py-3 font-medium">E-post</th>
+                <th className="px-4 py-3 font-medium">Telefon</th>
+                <th className="px-4 py-3 font-medium">Rolle</th>
+                <th className="px-4 py-3 font-medium">Institusjon</th>
+                <th className="px-4 py-3 font-medium w-24">Handlinger</th>
               </tr>
             </thead>
             <tbody>
@@ -150,10 +150,10 @@ export function UsersPage() {
                   <td className="px-4 py-3 text-accent font-medium">{user.institutionName || 'Default'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button onClick={() => { setEditingUser(user); setShowForm(true); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Edit">
+                      <button onClick={() => { setEditingUser(user); setShowForm(true); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Rediger">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => setDeleteTarget(user)} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Delete">
+                      <button onClick={() => setDeleteTarget(user)} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Slett">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -185,8 +185,8 @@ export function UsersPage() {
       {/* Delete confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete user"
-        message={`Are you sure you want to delete "${deleteTarget?.username}"? This action cannot be undone.`}
+        title="Slett bruker"
+        message={`Er du sikker på at du vil slette "${deleteTarget?.username}"? Denne handlingen kan ikke angres.`}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
         loading={deleteMutation.isPending}
@@ -237,16 +237,16 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
   const getAdminsForInstitution = (instId: number) =>
     users.filter(u => u.institutionId === instId);
 
-  if (instLoading) return <LoadingState message="Loading institutions..." />;
+  if (instLoading) return <LoadingState message="Laster institusjoner..." />;
 
   return (
     <div>
       <PageHeader
-        title="Users"
-        description="Manage institution admins across all institutions"
+        title="Brukere"
+        description="Administrer institusjonsadministratorer på tvers av alle institusjoner"
         action={
           <button onClick={onAddUser} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors">
-            <Plus size={16} /> Add User
+            <Plus size={16} /> Legg til bruker
           </button>
         }
       />
@@ -258,14 +258,14 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search institutions..."
+            placeholder="Søk i institusjoner..."
             className="w-full pl-9 pr-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors"
           />
         </div>
       </div>
 
       {Object.keys(grouped).length === 0 ? (
-        <EmptyState title="No institutions found" message="Add an institution first" />
+        <EmptyState title="Ingen institusjoner funnet" message="Legg til en institusjon først" />
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([level, items]) => {
@@ -312,7 +312,7 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="flex items-center gap-1.5 text-xs text-text-muted">
                               <Users size={14} />
-                              {admins.length} {admins.length === 1 ? 'admin' : 'admins'}
+                              {admins.length} {admins.length === 1 ? 'admin' : 'administratorer'}
                             </span>
                             <div className="text-text-muted transition-transform duration-200">
                               {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
@@ -324,18 +324,18 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
                         {isOpen && (
                           <div className="border-t border-border bg-bg-primary/30">
                             {admins.length === 0 ? (
-                              <p className="px-4 py-3 text-sm text-text-muted italic">No admins registered for this institution</p>
+                              <p className="px-4 py-3 text-sm text-text-muted italic">Ingen administratorer registrert for denne institusjonen</p>
                             ) : (
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b border-border/50 text-text-secondary text-left">
-                                    <th className="px-4 py-2 font-medium text-xs">Username</th>
-                                    <th className="px-4 py-2 font-medium text-xs">Name</th>
-                                    <th className="px-4 py-2 font-medium text-xs">Gender</th>
-                                    <th className="px-4 py-2 font-medium text-xs">Email</th>
-                                    <th className="px-4 py-2 font-medium text-xs">Phone</th>
-                                    <th className="px-4 py-2 font-medium text-xs">Role</th>
-                                    <th className="px-4 py-2 font-medium text-xs w-20">Actions</th>
+                                    <th className="px-4 py-2 font-medium text-xs">Brukernavn</th>
+                                    <th className="px-4 py-2 font-medium text-xs">Navn</th>
+                                    <th className="px-4 py-2 font-medium text-xs">Kjønn</th>
+                                    <th className="px-4 py-2 font-medium text-xs">E-post</th>
+                                    <th className="px-4 py-2 font-medium text-xs">Telefon</th>
+                                    <th className="px-4 py-2 font-medium text-xs">Rolle</th>
+                                    <th className="px-4 py-2 font-medium text-xs w-20">Handlinger</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -349,10 +349,10 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
                                       <td className="px-4 py-2.5">{roleBadge(admin.role)}</td>
                                       <td className="px-4 py-2.5">
                                         <div className="flex gap-1">
-                                          <button onClick={(e) => { e.stopPropagation(); onEditUser(admin); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Edit">
+                                          <button onClick={(e) => { e.stopPropagation(); onEditUser(admin); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Rediger">
                                             <Pencil size={14} />
                                           </button>
-                                          <button onClick={(e) => { e.stopPropagation(); onDeleteUser(admin); }} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Delete">
+                                          <button onClick={(e) => { e.stopPropagation(); onDeleteUser(admin); }} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Slett">
                                             <Trash2 size={14} />
                                           </button>
                                         </div>
@@ -386,8 +386,8 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
       {/* Delete confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete user"
-        message={`Are you sure you want to delete "${deleteTarget?.username}"? This action cannot be undone.`}
+        title="Slett bruker"
+        message={`Er du sikker på at du vil slette "${deleteTarget?.username}"? Denne handlingen kan ikke angres.`}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         onCancel={onCancelDelete}
         loading={deleteMutation.isPending}
@@ -424,16 +424,16 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
       if (isEditing) {
         const { password, ...rest } = form;
         await updateUser(user!.id, password ? form : rest);
-        toast.success('User updated');
+        toast.success('Bruker oppdatert');
       } else {
         // Username is auto-generated on backend from firstName + lastName
         const payload = { ...form, username: undefined };
         await createUser(payload as CreateUserRequest);
-        toast.success('User created');
+        toast.success('Bruker opprettet');
       }
       onSaved();
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.response?.data?.errors?.join(', ') || 'Failed to save';
+      const msg = err.response?.data?.error || err.response?.data?.errors?.join(', ') || 'Kunne ikke lagre';
       setError(msg);
     } finally {
       setLoading(false);
@@ -447,20 +447,20 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-lg shadow-2xl">
         <button onClick={onClose} className="absolute top-3 right-3 text-text-muted hover:text-text-primary"><X size={18} /></button>
-        <h2 className="text-lg font-semibold text-text-primary mb-4">{isEditing ? 'Edit User' : 'Create User'}</h2>
+        <h2 className="text-lg font-semibold text-text-primary mb-4">{isEditing ? 'Rediger bruker' : 'Opprett bruker'}</h2>
 
         {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Field label="First Name" value={form.firstName || ''} onChange={v => update('firstName', v)} required />
-            <Field label="Last Name" value={form.lastName || ''} onChange={v => update('lastName', v)} required />
+            <Field label="Fornavn" value={form.firstName || ''} onChange={v => update('firstName', v)} required />
+            <Field label="Etternavn" value={form.lastName || ''} onChange={v => update('lastName', v)} required />
             {isEditing && (
-              <Field label="Username" value={form.username || ''} onChange={v => update('username', v)} disabled />
+              <Field label="Brukernavn" value={form.username || ''} onChange={v => update('username', v)} disabled />
             )}
-            <Field label="Password" value={form.password} onChange={v => update('password', v)} type="password" required={!isEditing} placeholder={isEditing ? '(unchanged)' : ''} />
-            <Field label="Email" value={form.email || ''} onChange={v => update('email', v)} type="email" />
-            <Field label="Phone" value={form.phone || ''} onChange={v => update('phone', v)} />
+            <Field label="Passord" value={form.password} onChange={v => update('password', v)} type="password" required={!isEditing} placeholder={isEditing ? '(uendret)' : ''} />
+            <Field label="E-post" value={form.email || ''} onChange={v => update('email', v)} type="email" />
+            <Field label="Telefon" value={form.phone || ''} onChange={v => update('phone', v)} />
             <Field label="Fødselsdato" value={form.birthDate || ''} onChange={v => update('birthDate', v)} type="date" />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -488,16 +488,16 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
             </div>
             {/* Role */}
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">Role</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">Rolle</label>
               <select value={form.role} onChange={e => update('role', e.target.value)}
                 className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus">
                 {currentUser?.role === 'SUPER_ADMIN' ? (
-                  <option value="INSTITUTION_ADMIN">Institution Admin</option>
+                  <option value="INSTITUTION_ADMIN">Institusjonsadmin</option>
                 ) : (
                   <>
-                    <option value="STUDENT">Student</option>
-                    <option value="TEACHER">Teacher</option>
-                    <option value="INSTITUTION_ADMIN">Institution Admin</option>
+                    <option value="STUDENT">Elev</option>
+                    <option value="TEACHER">Lærer</option>
+                    <option value="INSTITUTION_ADMIN">Institusjonsadmin</option>
                   </>
                 )}
               </select>
@@ -505,7 +505,7 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
           </div>
           {currentUser?.role === 'SUPER_ADMIN' && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">Institution</label>
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">Institusjon</label>
               <select value={form.institutionId || ''} onChange={e => update('institutionId', Number(e.target.value))}
                 className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus">
                 {institutions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
@@ -519,9 +519,9 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Avbryt</button>
             <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50">
-              {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
+              {loading ? 'Lagrer...' : (isEditing ? 'Oppdater' : 'Opprett')}
             </button>
           </div>
         </form>

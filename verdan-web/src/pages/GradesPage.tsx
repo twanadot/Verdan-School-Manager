@@ -222,8 +222,8 @@ function GradesPageInner() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteGrade,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['grades'] }); toast.success('Grade deleted'); setDeleteTarget(null); },
-    onError: () => toast.error('Failed to delete grade'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['grades'] }); toast.success('Karakter slettet'); setDeleteTarget(null); },
+    onError: () => toast.error('Kunne ikke slette karakter'),
   });
 
   const retakeMutation = useMutation({
@@ -306,7 +306,7 @@ function GradesPageInner() {
     return map;
   }, [filtered]);
 
-  if (isLoading) return <LoadingState message="Loading grades..." />;
+  if (isLoading) return <LoadingState message="Laster karakterer..." />;
 
   const renderGradeTable = (items: Grade[], hideStudentCol = false) => {
     // Sort by year level then subject code
@@ -459,7 +459,7 @@ function GradesPageInner() {
       {viewTab === 'current' && (
         <div className="relative max-w-sm mb-6">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search grades..."
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Søk i karakterer..."
             className="w-full pl-9 pr-4 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors" />
         </div>
       )}
@@ -626,7 +626,7 @@ function GradesPageInner() {
         onClose={() => { setShowForm(false); setEditingGrade(null); }}
         onSaved={() => { setShowForm(false); setEditingGrade(null); queryClient.invalidateQueries({ queryKey: ['grades'] }); }} />}
 
-      <ConfirmDialog open={!!deleteTarget} title="Delete grade" message="Are you sure? This cannot be undone."
+      <ConfirmDialog open={!!deleteTarget} title="Slett karakter" message="Er du sikker? Dette kan ikke angres."
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)} onCancel={() => setDeleteTarget(null)} loading={deleteMutation.isPending} />
 
       {/* Retake (privatist) dialog */}

@@ -15,8 +15,8 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title={`Welcome, ${user.firstName || user.username}`}
-        description={`You are logged in as ${user.role.replace(/_/g, ' ').toLowerCase()}`}
+        title={`Velkommen, ${user.firstName || user.username}`}
+        description={`Du er logget inn som ${user.role.replace(/_/g, ' ').toLowerCase()}`}
       />
 
       {/* Institution info card for INSTITUTION_ADMIN */}
@@ -26,7 +26,7 @@ export function DashboardPage() {
             <Building2 size={24} className="text-accent" />
           </div>
           <div>
-            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Your Institution</p>
+            <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Din institusjon</p>
             <h3 className="text-lg font-semibold text-text-primary">{user.institutionName}</h3>
             {user.institutionLevel && (
               <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent">
@@ -39,42 +39,42 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isSuperAdmin && (
-          <DashCard to="/institutions" icon={<Building2 />} title="Institutions" description="Manage schools and campuses" color="text-rose-400" />
+          <DashCard to="/institutions" icon={<Building2 />} title="Institusjoner" description="Administrer skoler og campuser" color="text-rose-400" />
         )}
         {isSuperAdmin && (
           <>
-            <DashCard to="/users" icon={<Users />} title="Users" description="Manage admins for each institution" color="text-purple-400" />
-            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send and receive messages" color="text-teal-400" />
+            <DashCard to="/users" icon={<Users />} title="Brukere" description="Administrer administratorer for hver institusjon" color="text-purple-400" />
+            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
           </>
         )}
         {isInstAdmin && (
           <>
-            <DashCard to="/users" icon={<Users />} title="Users" description="Manage students, teachers, and admins" color="text-purple-400" />
-            <DashCard to="/subjects" icon={<BookOpen />} title="Subjects" description="Manage courses and subjects" color="text-blue-400" />
-            <DashCard to="/grades" icon={<GraduationCap />} title="Grades" description="View and manage all grades" color="text-green-400" />
-            <DashCard to="/attendance" icon={<ClipboardList />} title="Attendance" description="Track student attendance" color="text-amber-400" />
-            <DashCard to="/rooms" icon={<DoorOpen />} title="Rooms" description="Manage rooms and capacity" color="text-cyan-400" />
-            <DashCard to="/bookings" icon={<Calendar />} title="Bookings" description="Schedule room bookings" color="text-pink-400" />
-            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send and receive messages" color="text-teal-400" />
+            <DashCard to="/users" icon={<Users />} title="Brukere" description="Administrer elever, lærere og administratorer" color="text-purple-400" />
+            <DashCard to="/subjects" icon={<BookOpen />} title="Fag" description="Administrer kurs og fag" color="text-blue-400" />
+            <DashCard to="/grades" icon={<GraduationCap />} title="Karakterer" description="Se og administrer alle karakterer" color="text-green-400" />
+            <DashCard to="/attendance" icon={<ClipboardList />} title="Fravær" description="Følg opp elevfravær" color="text-amber-400" />
+            <DashCard to="/rooms" icon={<DoorOpen />} title="Rom" description="Administrer rom og kapasitet" color="text-cyan-400" />
+            <DashCard to="/bookings" icon={<Calendar />} title="Timeplan" description="Planlegg rombookinger" color="text-pink-400" />
+            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
             <DashCard to="/reports" icon={<GraduationCap />} title="Uteksaminerte" description="Se uteksaminerte elever" color="text-indigo-400" />
             <DashCard to="/portal" icon={<FileSearch />} title="Søknadsportal" description="Administrer opptak og søknader" color="text-orange-400" />
           </>
         )}
         {user.role === 'TEACHER' && (
           <>
-            <DashCard to="/subjects" icon={<BookOpen />} title="Subjects" description="View your courses" color="text-blue-400" />
-            <DashCard to="/grades" icon={<GraduationCap />} title="Grades" description="Manage student grades" color="text-green-400" />
-            <DashCard to="/attendance" icon={<ClipboardList />} title="Attendance" description="Register attendance" color="text-amber-400" />
-            <DashCard to="/bookings" icon={<Calendar />} title="Bookings" description="Book rooms for lectures" color="text-pink-400" />
-            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send and receive messages" color="text-teal-400" />
+            <DashCard to="/subjects" icon={<BookOpen />} title="Fag" description="Se dine kurs" color="text-blue-400" />
+            <DashCard to="/grades" icon={<GraduationCap />} title="Karakterer" description="Administrer elevkarakterer" color="text-green-400" />
+            <DashCard to="/attendance" icon={<ClipboardList />} title="Fravær" description="Registrer fravær" color="text-amber-400" />
+            <DashCard to="/bookings" icon={<Calendar />} title="Timeplan" description="Book rom for undervisning" color="text-pink-400" />
+            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
           </>
         )}
         {user.role === 'STUDENT' && (
           <>
-            <DashCard to="/subjects" icon={<BookOpen />} title="Subjects" description="View your enrolled courses" color="text-blue-400" />
-            <DashCard to="/grades" icon={<GraduationCap />} title="My Grades" description="Check your academic results" color="text-green-400" />
-            <DashCard to="/attendance" icon={<ClipboardList />} title="My Attendance" description="View your attendance records" color="text-amber-400" />
-            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send and receive messages" color="text-teal-400" />
+            <DashCard to="/subjects" icon={<BookOpen />} title="Fag" description="Se fagene du er meldt opp i" color="text-blue-400" />
+            <DashCard to="/grades" icon={<GraduationCap />} title="Mine karakterer" description="Sjekk dine resultater" color="text-green-400" />
+            <DashCard to="/attendance" icon={<ClipboardList />} title="Mitt fravær" description="Se din fraværsoversikt" color="text-amber-400" />
+            <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
             <DashCard to="/portal" icon={<FileSearch />} title="Søknadsportal" description="Søk på studier og programmer" color="text-orange-400" />
           </>
         )}

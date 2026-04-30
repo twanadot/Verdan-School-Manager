@@ -100,7 +100,7 @@ export function ChatPage() {
             <button
               onClick={() => setShowNewChat(true)}
               className="p-2 rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors"
-              title="New Chat"
+              title="Ny samtale"
             >
               <Plus size={16} />
             </button>
@@ -110,7 +110,7 @@ export function ChatPage() {
             <input
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
-              placeholder="Search chats..."
+              placeholder="Søk i samtaler..."
               className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
             />
           </div>
@@ -121,7 +121,7 @@ export function ChatPage() {
           {filteredRooms.length === 0 ? (
             <div className="p-6 text-center text-text-muted text-sm">
               <MessageSquare size={32} className="mx-auto mb-2 opacity-40" />
-              No conversations yet
+              Ingen samtaler ennå
             </div>
           ) : (
             filteredRooms.map(room => (
@@ -137,7 +137,7 @@ export function ChatPage() {
                     await hideChatRoom(room.id);
                     if (activeRoomId === room.id) setActiveRoomId(null);
                     queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-                  } catch { toast.error('Failed to hide chat'); }
+                  } catch { toast.error('Kunne ikke skjule samtale'); }
                 } : undefined}
               />
             ))
@@ -160,8 +160,8 @@ export function ChatPage() {
           <div className="flex-1 flex items-center justify-center text-text-muted">
             <div className="text-center">
               <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
-              <p className="text-lg font-medium">Select a conversation</p>
-              <p className="text-sm mt-1">or start a new chat</p>
+              <p className="text-lg font-medium">Velg en samtale</p>
+              <p className="text-sm mt-1">eller start en ny chat</p>
             </div>
           </div>
         )}
@@ -233,12 +233,12 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
               {room.lastMessage
                 ? (() => {
                     const prefix = room.lastMessage.senderId === currentUserId
-                      ? 'You: '
+                      ? 'Deg: '
                       : room.isGroup ? `${room.lastMessage.senderName.split(' ')[0]}: ` : '';
-                    const text = room.lastMessage.deleted ? 'Message deleted' : room.lastMessage.content;
+                    const text = room.lastMessage.deleted ? 'Melding slettet' : room.lastMessage.content;
                     return prefix + text;
                   })()
-                : 'No messages yet'}
+                : 'Ingen meldinger ennå'}
             </p>
             {room.unreadCount > 0 && (
               <span className="ml-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-bold text-white bg-accent rounded-full shrink-0">
@@ -254,7 +254,7 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
         <button
           onClick={(e) => { e.stopPropagation(); onHide(); }}
           className="absolute top-1.5 right-1.5 p-1 rounded-full bg-bg-secondary/80 text-text-muted hover:text-danger hover:bg-bg-hover opacity-0 group-hover:opacity-100 transition-all z-10"
-          title="Hide chat"
+          title="Skjul samtale"
         >
           <X size={14} />
         </button>
@@ -337,7 +337,7 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatMessages', room.id] });
       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-      toast.success('Message deleted');
+      toast.success('Melding slettet');
     },
   });
 
@@ -420,8 +420,8 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
           <h3 className="text-sm font-semibold text-text-primary truncate">{room.name}</h3>
           <p className="text-[10px] text-text-muted">
             {room.isGroup
-              ? `${room.members.length} members · ${onlineCount} online`
-              : isOtherOnline ? '🟢 Online' : '⚫ Offline'}
+              ? `${room.members.length} medlemmer · ${onlineCount} pålogget`
+              : isOtherOnline ? '🟢 Pålogget' : '⚫ Frakoblet'}
           </p>
         </div>
         {/* Members panel toggle */}
@@ -465,7 +465,7 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
       {/* Typing indicator */}
       {typingNames.length > 0 && (
         <div className="px-4 py-1.5 text-xs text-text-muted animate-pulse">
-          ✏️ {typingNames.join(', ')} {typingNames.length === 1 ? 'is' : 'are'} typing...
+          ✏️ {typingNames.join(', ')} skriver...
         </div>
       )}
 
@@ -473,7 +473,7 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
       {editingMsg && (
         <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 flex items-center gap-2">
           <Edit3 size={14} className="text-amber-400" />
-          <span className="text-xs text-amber-400 shrink-0">Editing</span>
+          <span className="text-xs text-amber-400 shrink-0">Redigerer</span>
           <input
             value={editContent}
             onChange={e => setEditContent(e.target.value)}
@@ -490,7 +490,7 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
         <div className="px-4 py-2 bg-accent/5 border-t border-accent/20 flex items-center gap-2">
           <Reply size={14} className="text-accent" />
           <span className="text-xs text-accent flex-1 truncate">
-            Replying to {replyTo.senderName}: {replyTo.deleted ? 'Message deleted' : replyTo.content}
+            Svarer på {replyTo.senderName}: {replyTo.deleted ? 'Melding slettet' : replyTo.content}
           </span>
           <button onClick={() => setReplyTo(null)} className="p-1 text-text-muted hover:text-text-primary"><X size={16} /></button>
         </div>
@@ -555,7 +555,7 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-text-primary truncate flex items-center gap-1">
                             {member.fullName}
-                            {isOwner && <span className="text-[9px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-semibold">Owner</span>}
+                            {isOwner && <span className="text-[9px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-semibold">Eier</span>}
                           </p>
                           <p className="text-[10px] text-text-muted truncate">
                             {member.role.replace('_', ' ')} · {member.institutionName}
@@ -564,15 +564,15 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
                         {canRemove && (
                           <button
                             onClick={async () => {
-                              if (!confirm(`Remove ${member.fullName} from the group?`)) return;
+                              if (!confirm(`Fjerne ${member.fullName} fra gruppen?`)) return;
                               try {
                                 await removeChatMember(room.id, member.userId);
                                 queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                                 toast.success(`${member.fullName} removed`);
-                              } catch { toast.error('Failed to remove member'); }
+                              } catch { toast.error('Kunne ikke fjerne medlem'); }
                             }}
                             className="p-1 text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Remove member"
+                            title="Fjern medlem"
                           >
                             <X size={14} />
                           </button>
@@ -586,13 +586,13 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
               {room.isGroup && room.createdById === currentUserId && (
                 <button
                   onClick={async () => {
-                    if (!confirm(`Delete group "${room.name}"? This will remove all messages and members permanently.`)) return;
+                    if (!confirm(`Slette gruppen "${room.name}"? Dette fjerner alle meldinger og medlemmer permanent.`)) return;
                     try {
                       await deleteGroupChat(room.id);
                       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                       onBack();
-                      toast.success('Group deleted');
-                    } catch { toast.error('Failed to delete group'); }
+                      toast.success('Gruppe slettet');
+                    } catch { toast.error('Kunne ikke slette gruppe'); }
                   }}
                   className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm font-medium hover:bg-danger/20 transition-colors"
                 >
@@ -605,13 +605,13 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
               {room.isGroup && room.createdById !== currentUserId && (
                 <button
                   onClick={async () => {
-                    if (!confirm(`Leave group "${room.name}"?`)) return;
+                    if (!confirm(`Forlate gruppen "${room.name}"?`)) return;
                     try {
                       await removeChatMember(room.id, currentUserId);
                       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                       onBack();
-                      toast.success('You left the group');
-                    } catch { toast.error('Failed to leave group'); }
+                      toast.success('Du forlot gruppen');
+                    } catch { toast.error('Kunne ikke forlate gruppe'); }
                   }}
                   className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-bg-hover border border-border text-text-muted text-sm font-medium hover:text-danger hover:border-danger/30 transition-colors"
                 >
@@ -660,13 +660,13 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search contacts..."
+            placeholder="Søk i kontakter..."
             className="w-full px-2 py-1.5 text-xs bg-bg-primary border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent mb-2"
             autoFocus
           />
           <div className="max-h-40 overflow-y-auto space-y-0.5">
             {available.length === 0 && (
-              <p className="text-[10px] text-text-muted text-center py-2">No contacts available</p>
+              <p className="text-[10px] text-text-muted text-center py-2">Ingen kontakter tilgjengelig</p>
             )}
             {available.map(c => (
               <button
@@ -675,9 +675,9 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
                   try {
                     await addChatMember(roomId, c.id);
                     onAdded();
-                    toast.success(`${c.fullName} added to group`);
+                    toast.success(`${c.fullName} lagt til i gruppen`);
                     setSearch('');
-                  } catch { toast.error('Failed to add member'); }
+                  } catch { toast.error('Kunne ikke legge til medlem'); }
                 }}
                 className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-bg-hover transition-colors text-left"
               >
@@ -712,7 +712,7 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
         {/* Avatar spacer for deleted messages */}
         {!isMine && <div className="w-8 shrink-0" />}
         <div className="px-3 py-2 rounded-xl bg-bg-hover/30 border border-border/20 italic text-xs text-text-muted">
-          🚫 Message deleted
+          🚫 Melding slettet
         </div>
       </div>
     );
@@ -934,7 +934,7 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
       setFiles([]);
       onSent();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to send');
+      toast.error(err.response?.data?.error || 'Kunne ikke sende');
     } finally {
       setUploading(false);
     }
@@ -1086,14 +1086,14 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-md shadow-2xl max-h-[80vh] flex flex-col">
         <button onClick={onClose} className="absolute top-3 right-3 text-text-muted hover:text-text-primary"><X size={18} /></button>
-        <h2 className="text-lg font-semibold text-text-primary mb-3">New Chat</h2>
+        <h2 className="text-lg font-semibold text-text-primary mb-3">Ny samtale</h2>
 
         <div className="flex gap-1 mb-3 bg-bg-primary p-1 rounded-lg">
           <button onClick={() => setTab('direct')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'direct' ? 'bg-accent text-white' : 'text-text-secondary'}`}>
-            Direct Message
+            Direktemelding
           </button>
           <button onClick={() => setTab('group')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-accent text-white' : 'text-text-secondary'}`}>
-            Group Chat
+            Gruppechat
           </button>
         </div>
 
@@ -1101,14 +1101,14 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <input
             value={groupName}
             onChange={e => setGroupName(e.target.value)}
-            placeholder="Group name..."
+            placeholder="Gruppenavn..."
             className="w-full px-3 py-2 mb-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
           />
         )}
 
         <div className="relative mb-2">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts..." className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Søk i kontakter..." className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus" />
         </div>
 
         {tab === 'group' && selectedIds.length > 0 && (
@@ -1156,7 +1156,7 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
             className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             <UserPlus size={16} />
-            {loading ? 'Creating...' : `Create Group (${selectedIds.length} members)`}
+            {loading ? 'Oppretter...' : `Opprett gruppe (${selectedIds.length} medlemmer)`}
           </button>
         )}
       </div>

@@ -19,8 +19,8 @@ export function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
   }, []);
 
   const themes = [
-    { value: 'light', label: 'Light', icon: <Sun size={14} /> },
-    { value: 'dark', label: 'Dark', icon: <Moon size={14} /> },
+    { value: 'light', label: 'Lys', icon: <Sun size={14} /> },
+    { value: 'dark', label: 'Mørk', icon: <Moon size={14} /> },
     { value: 'system', label: 'System', icon: <Monitor size={14} /> },
   ] as const;
 
@@ -31,16 +31,16 @@ export function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-text-secondary hover:bg-sidebar-hover hover:text-text-primary transition-colors ${collapsed ? 'justify-center p-2' : ''}`}
-        title="Appearance"
+        title="Utseende"
       >
         {activeOption.icon}
-        {!collapsed && <span>Appearance</span>}
+        {!collapsed && <span>Utseende</span>}
       </button>
 
       {isOpen && (
         <div className={`absolute bottom-full mb-1 z-50 min-w-[200px] bg-bg-card border border-border shadow-lg rounded-xl overflow-hidden py-1 ${collapsed ? 'left-4' : 'left-0'}`}>
           <div className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
-            Appearance
+            Utseende
           </div>
           <div className="flex px-2 pb-2 gap-1">
             {themes.map((t) => (

@@ -54,25 +54,25 @@ export function InstitutionsPage() {
     if (!confirmDelete) return;
     try {
       await deleteInstitution(confirmDelete.id);
-      toast.success(`"${confirmDelete.name}" has been deactivated`);
+      toast.success(`"${confirmDelete.name}" er deaktivert`);
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete');
+      toast.error(err.response?.data?.error || 'Kunne ikke deaktivere');
     } finally {
       setConfirmDelete(null);
     }
   };
 
-  if (isLoading) return <LoadingState message="Loading institutions..." />;
+  if (isLoading) return <LoadingState message="Laster institusjoner..." />;
 
   return (
     <div>
       <PageHeader
-        title="Institutions"
-        description="Manage schools, colleges, and university branches"
+        title="Institusjoner"
+        description="Administrer skoler, høyskoler og universitetscampuser"
         action={
           <button onClick={() => { setEditing(null); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors">
-            <Plus size={16} /> New Institution
+            <Plus size={16} /> Ny institusjon
           </button>
         }
       />
@@ -84,14 +84,14 @@ export function InstitutionsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search institutions by name, location, or level..."
+            placeholder="Søk etter institusjoner..."
             className="w-full pl-9 pr-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors"
           />
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title={search ? 'No matches found' : 'No institutions found'} message={search ? 'Try a different search term' : 'Add a new institution to get started'} />
+        <EmptyState title={search ? 'Ingen treff' : 'Ingen institusjoner funnet'} message={search ? 'Prøv et annet søkeord' : 'Legg til en ny institusjon for å komme i gang'} />
       ) : (
         <div className="space-y-8">
           {Object.entries(grouped).map(([level, items]) => {
@@ -140,14 +140,14 @@ export function InstitutionsPage() {
                           <button
                             onClick={() => { setEditing(inst); setShowForm(true); }}
                             className="p-1.5 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
-                            title="Edit"
+                            title="Rediger"
                           >
                             <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => setConfirmDelete(inst)}
                             className="p-1.5 rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-                            title="Deactivate"
+                            title="Deaktiver"
                           >
                             <Trash2 size={14} />
                           </button>

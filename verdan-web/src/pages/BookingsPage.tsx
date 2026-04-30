@@ -36,7 +36,7 @@ function formatTime(dt: string): string {
   return new Date(dt).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
 }
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag'];
 
 export function BookingsPage() {
   const queryClient = useQueryClient();
@@ -57,14 +57,14 @@ export function BookingsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteBooking,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking deleted'); setDeleteTarget(null); },
-    onError: () => toast.error('Failed to delete booking'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking slettet'); setDeleteTarget(null); },
+    onError: () => toast.error('Kunne ikke slette booking'),
   });
 
   const updateMutation = useMutation({
     mutationFn: updateBooking,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking updated'); setEditTarget(null); },
-    onError: () => toast.error('Failed to update booking'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['bookings'] }); toast.success('Booking oppdatert'); setEditTarget(null); },
+    onError: () => toast.error('Kunne ikke oppdatere booking'),
   });
 
   const cancelMutation = useMutation({
@@ -127,21 +127,21 @@ export function BookingsPage() {
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
   const today = () => setWeekStart(getMonday(new Date()));
 
-  if (bookingsLoading || roomsLoading) return <LoadingState message="Loading bookings..." />;
+  if (bookingsLoading || roomsLoading) return <LoadingState message="Laster bookinger..." />;
 
   return (
     <div>
-      <PageHeader title={isStudent ? 'Schedule' : 'Bookings'} description="Weekly room booking calendar"
-        action={canCreate ? <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"><Plus size={16} /> New Booking</button> : undefined} />
+      <PageHeader title={isStudent ? 'Timeplan' : 'Bookinger'} description="Ukentlig rombookingkalender"
+        action={canCreate ? <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"><Plus size={16} /> Ny booking</button> : undefined} />
 
       {/* Week navigation + room selector */}
       <div className="flex flex-wrap items-center gap-4 mb-4">
         {/* Room filter */}
         <div className="flex items-center gap-2">
-          <label className="text-sm text-text-secondary">Room:</label>
+          <label className="text-sm text-text-secondary">Rom:</label>
           <select value={selectedRoom} onChange={e => setSelectedRoom(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
             className="px-3 py-1.5 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus">
-            <option value="all">📋 All Rooms</option>
+            <option value="all">📋 Alle rom</option>
             {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.roomType})</option>)}
           </select>
         </div>
@@ -149,7 +149,7 @@ export function BookingsPage() {
         {/* Week controls */}
         <div className="flex items-center gap-1 ml-auto">
           <button onClick={prevWeek} className="p-1.5 rounded-md hover:bg-bg-hover text-text-secondary transition-colors"><ChevronLeft size={18} /></button>
-          <button onClick={today} className="px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-bg-hover text-text-secondary transition-colors">Today</button>
+          <button onClick={today} className="px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-bg-hover text-text-secondary transition-colors">I dag</button>
           <button onClick={nextWeek} className="p-1.5 rounded-md hover:bg-bg-hover text-text-secondary transition-colors"><ChevronRight size={18} /></button>
           <span className="ml-2 text-sm font-medium text-text-primary flex items-center gap-1.5">
             <Calendar size={14} className="text-accent" />
@@ -164,7 +164,7 @@ export function BookingsPage() {
           <table className="w-full text-sm border border-border rounded-xl overflow-hidden">
             <thead>
               <tr className="bg-bg-card">
-                <th className="px-3 py-2.5 text-left font-medium text-text-secondary border-b border-r border-border w-32">Room</th>
+                <th className="px-3 py-2.5 text-left font-medium text-text-secondary border-b border-r border-border w-32">Rom</th>
                 {DAYS.map((day, i) => {
                   const date = addDays(weekStart, i);
                   const isToday = date.toDateString() === new Date().toDateString();
@@ -264,7 +264,7 @@ export function BookingsPage() {
             return (
               <div key={i} className={`min-h-[160px] p-2 ${isToday ? 'bg-accent/5' : 'bg-bg-secondary'}`}>
                 {bks.length === 0 ? (
-                  <span className="text-xs text-text-muted italic">No bookings</span>
+                  <span className="text-xs text-text-muted italic">Ingen bookinger</span>
                 ) : (
                   <div className="space-y-1.5">
                     {bks.map(b => {
@@ -335,19 +335,19 @@ function DeleteBookingModal({ booking, onClose, onConfirm, loading }: { booking:
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={loading ? undefined : onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-sm shadow-2xl">
-        <h2 className="text-lg font-semibold text-danger mb-2">Delete Booking</h2>
+        <h2 className="text-lg font-semibold text-danger mb-2">Slett booking</h2>
         <p className="text-sm text-text-secondary mb-6">
-          Do you want to delete only this booking, or the whole series (all items with subject <span className="font-mono text-accent">{booking.subject}</span> at the same time)?
+          Vil du slette bare denne bookingen, eller hele serien (alle med fag <span className="font-mono text-accent">{booking.subject}</span> på samme tid)?
         </p>
         <div className="flex flex-col gap-3">
           <button onClick={() => onConfirm(true)} disabled={loading} className="w-full py-2.5 px-4 bg-danger hover:bg-danger/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            Delete Whole Series
+            Slett hele serien
           </button>
           <button onClick={() => onConfirm(false)} disabled={loading} className="w-full py-2.5 px-4 border border-danger/50 text-danger hover:bg-danger/10 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            Delete Only This Day
+            Slett bare denne dagen
           </button>
           <button onClick={onClose} disabled={loading} className="w-full py-2.5 px-4 mt-2 text-text-secondary hover:bg-bg-hover rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            Cancel
+            Avbryt
           </button>
         </div>
       </div>
@@ -381,29 +381,29 @@ function EditBookingModal({ booking, onClose, onConfirm, loading }: { booking: B
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={loading ? undefined : onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-sm shadow-2xl">
         <button onClick={onClose} disabled={loading} className="absolute top-3 right-3 text-text-muted hover:text-text-primary disabled:opacity-50"><X size={18} /></button>
-        <h2 className="text-lg font-semibold mb-4">Edit Booking</h2>
+        <h2 className="text-lg font-semibold mb-4">Rediger booking</h2>
         <div className="mb-4">
-          <p className="text-sm font-medium text-text-secondary mb-1">Subject</p>
-          <p className="text-sm font-mono p-2 bg-bg-input rounded border border-border opacity-70">{booking.subject} (Locked)</p>
+          <p className="text-sm font-medium text-text-secondary mb-1">Fag</p>
+          <p className="text-sm font-mono p-2 bg-bg-input rounded border border-border opacity-70">{booking.subject} (Låst)</p>
         </div>
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div><label className="block text-xs font-medium text-text-secondary mb-1">Date</label>
+          <div><label className="block text-xs font-medium text-text-secondary mb-1">Dato</label>
             <input type="date" value={form.startDate} onChange={e => { setForm({...form, startDate: e.target.value, endDate: e.target.value }); }} disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
           <div className="opacity-0"><label className="block text-xs font-medium text-text-secondary mb-1">_</label>
             <input type="date" disabled className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm disabled:opacity-50" /></div>
         </div>
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div><label className="block text-xs font-medium text-text-secondary mb-1">Start Time</label>
+          <div><label className="block text-xs font-medium text-text-secondary mb-1">Starttid</label>
             <input type="time" value={form.startTime} onChange={e => setForm({...form, startTime: e.target.value})} disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
-          <div><label className="block text-xs font-medium text-text-secondary mb-1">End Time</label>
+          <div><label className="block text-xs font-medium text-text-secondary mb-1">Sluttid</label>
             <input type="time" value={form.endTime} onChange={e => setForm({...form, endTime: e.target.value})} disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
         </div>
         <div className="flex flex-col gap-3">
           <button onClick={() => handleSubmit(true)} disabled={loading} className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            Apply to Whole Series
+            Bruk på hele serien
           </button>
           <button onClick={() => handleSubmit(false)} disabled={loading} className="w-full py-2.5 px-4 border border-accent/50 text-accent hover:bg-accent/10 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
-            Apply to Only This Day
+            Bruk bare på denne dagen
           </button>
         </div>
       </div>
@@ -448,13 +448,13 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     e.preventDefault(); setError(''); setLoading(true); setProgress(null);
     
     if (new Date(form.toDate) < new Date(form.fromDate)) {
-      setError('To-date must be the same or after from-date.');
+      setError('Sluttdato må være lik eller etter startdato.');
       setLoading(false);
       return;
     }
     
     if (form.endTime <= form.startTime) {
-      setError('End time must be after start time.');
+      setError('Sluttid må være etter starttid.');
       setLoading(false);
       return;
     }
@@ -504,15 +504,15 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
       }
 
       if (conflicts === daysToCreate.length) {
-        toast.error('Could not create any bookings. The room was busy at all requested times.');
+        toast.error('Kunne ikke opprette noen bookinger. Rommet var opptatt på alle valgte tidspunkter.');
       } else if (conflicts > 0) {
-        toast.warning(`Created ${daysToCreate.length - conflicts} bookings. Skipped ${conflicts} busy days.`);
+        toast.warning(`Opprettet ${daysToCreate.length - conflicts} bookinger. Hoppet over ${conflicts} opptatte dager.`);
       } else {
-        toast.success(`Created bookings across ${daysToCreate.length} weekday(s).`);
+        toast.success(`Opprettet bookinger over ${daysToCreate.length} ukedag(er).`);
         onClose();
       }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Failed to create booking series'); }
+    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke opprette bookingserie'); }
     finally { setLoading(false); }
   };
 
@@ -521,21 +521,21 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
         <button onClick={onClose} disabled={loading} className="absolute top-3 right-3 text-text-muted hover:text-text-primary disabled:opacity-50"><X size={18} /></button>
-        <h2 className="text-lg font-semibold mb-4">Book Room Period</h2>
+        <h2 className="text-lg font-semibold mb-4">Book romperiode</h2>
         {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Room</label>
+          <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Rom</label>
             <select value={form.roomId} onChange={e => setForm({...form, roomId: parseInt(e.target.value)})} required disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50">
-              <option value={0}>Select a room...</option>
-              {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.roomType}, {r.capacity} seats)</option>)}
+              <option value={0}>Velg et rom...</option>
+              {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber} ({r.roomType}, {r.capacity} plasser)</option>)}
             </select></div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">Subject Code</label>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">Fagkode</label>
             <AutocompleteInput
               value={form.subject}
               onChange={v => setForm({...form, subject: v})}
               options={subjectOptions}
-              placeholder="e.g. INF100"
+              placeholder="f.eks. INF100"
               required
             />
           </div>
@@ -571,30 +571,30 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">From Date</label>
+            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Fra dato</label>
               <input type="date" value={form.fromDate} onChange={e => setForm({...form, fromDate: e.target.value})} required disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
-            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">To Date</label>
+            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Til dato</label>
               <input type="date" value={form.toDate} onChange={e => setForm({...form, toDate: e.target.value})} required disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Start Time</label>
+            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Starttid</label>
               <input type="time" value={form.startTime} onChange={e => setForm({...form, startTime: e.target.value})} required disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
-            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">End Time</label>
+            <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Sluttid</label>
               <input type="time" value={form.endTime} onChange={e => setForm({...form, endTime: e.target.value})} required disabled={loading} className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
           </div>
-          <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Description / Tags</label>
-            <input value={form.description || ''} onChange={e => setForm({...form, description: e.target.value})} disabled={loading} placeholder="E.g. Exam, Group work" className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
+          <div><label className="block text-sm font-medium text-text-secondary mb-1.5">Beskrivelse / Merknader</label>
+            <input value={form.description || ''} onChange={e => setForm({...form, description: e.target.value})} disabled={loading} placeholder="F.eks. Eksamen, Gruppearbeid" className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50" /></div>
 
           {loading && progress && (
             <div className="text-xs text-text-secondary bg-bg-hover p-2 rounded-lg">
-              Processing: {progress.current} / {progress.total} days ...
-              {progress.conflicts > 0 && <span className="text-danger ml-2">({progress.conflicts} conflicts)</span>}
+              Behandler: {progress.current} / {progress.total} dager ...
+              {progress.conflicts > 0 && <span className="text-danger ml-2">({progress.conflicts} konflikter)</span>}
             </div>
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            {!loading && <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Cancel</button>}
-            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50">{loading ? 'Creating...' : 'Create'}</button>
+            {!loading && <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Avbryt</button>}
+            <button type="submit" disabled={loading} className="px-4 py-2 text-sm rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50">{loading ? 'Oppretter...' : 'Opprett'}</button>
           </div>
         </form>
       </div>

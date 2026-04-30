@@ -26,7 +26,7 @@ export function LoginPage() {
       await login({ username, password });
       navigate('/dashboard');
     } catch (err: any) {
-      const message = err.response?.data?.error || 'Login failed. Please try again.';
+      const message = err.response?.data?.error || 'Innlogging feilet. Prøv igjen.';
       setError(message);
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-accent/10 border border-accent/20 rounded-2xl mb-4">
             <GraduationCap size={32} className="text-accent" />
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">Verdan University</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Verdan Skoleadministrasjon</h1>
           <p className="text-text-secondary text-sm mt-1">Logg inn på din konto</p>
         </div>
 
@@ -112,13 +112,13 @@ export function LoginPage() {
           </form>
 
           <div className="mt-6 pt-5 border-t border-border">
-            <p className="text-xs text-text-muted text-center">Demo accounts</p>
+            <p className="text-xs text-text-muted text-center">Demokontoer</p>
             <div className="grid grid-cols-4 gap-2 mt-3">
               {[
-                { user: 'admin', pass: 'admin123', role: 'Super Admin' },
-                { user: 'inst-admin', pass: '123456', role: 'Inst. Admin' },
-                { user: 'teacher', pass: 'teacher123', role: 'Teacher' },
-                { user: 'student', pass: 'student123', role: 'Student' },
+                { user: 'admin', pass: 'admin123', role: 'Superadmin' },
+                { user: 'inst-admin', pass: '123456', role: 'Inst.admin' },
+                { user: 'teacher', pass: 'teacher123', role: 'Lærer' },
+                { user: 'student', pass: 'student123', role: 'Elev' },
               ].map((demo) => (
                 <button
                   key={demo.user}
