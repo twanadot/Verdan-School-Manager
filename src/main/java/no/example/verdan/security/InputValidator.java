@@ -18,7 +18,7 @@ public class InputValidator {
 
     private static final Pattern ROOM_CODE_PATTERN = Pattern.compile("^[A-Za-z0-9-]{2,20}$");
 
-    private static final Pattern SUBJECT_CODE_PATTERN = Pattern.compile("^[A-Za-z0-9]{2,20}$");
+    private static final Pattern SUBJECT_CODE_PATTERN = Pattern.compile("^[A-Za-z0-9-]{2,20}$");
 
     /**
      * Validate that a string is not null or blank.

@@ -163,7 +163,7 @@ function RoomFormModal({ room, onClose, onSaved }: { room: Room | null; onClose:
       if (isEditing) { await updateRoom(room!.id, form); toast.success('Rom oppdatert'); }
       else { await createRoom(form); toast.success('Rom opprettet'); }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke lagre'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre'); }
     finally { setLoading(false); }
   };
 

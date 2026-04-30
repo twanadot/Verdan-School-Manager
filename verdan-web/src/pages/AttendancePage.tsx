@@ -881,7 +881,7 @@ function AttendanceFormModal({ record, onClose, onSaved }: { record: Attendance 
         }
       }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke lagre'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre'); }
     finally { setLoading(false); }
   };
 

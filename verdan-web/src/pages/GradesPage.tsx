@@ -1047,7 +1047,7 @@ function GradeFormModal({ grade, subjects, onClose, onSaved }: {
       if (isEditing) { await updateGrade(grade!.id, form); toast.success('Karakter oppdatert'); }
       else { await createGrade(form); toast.success('Karakter registrert'); }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke lagre'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre'); }
     finally { setLoading(false); }
   };
 

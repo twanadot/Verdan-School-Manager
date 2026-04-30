@@ -433,7 +433,7 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
       }
       onSaved();
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.response?.data?.errors?.join(', ') || 'Kunne ikke lagre';
+      const msg = err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre';
       setError(msg);
     } finally {
       setLoading(false);

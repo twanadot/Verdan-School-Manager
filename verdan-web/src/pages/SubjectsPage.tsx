@@ -757,7 +757,7 @@ function ProgramFormModal({ program, config, instLevel, onClose, onSaved }: {
       if (isEditing) { await updateProgram(program!.id, form); toast.success(`${config.programLabel} oppdatert`); }
       else { await createProgram(form); toast.success(`${config.programLabel} opprettet`); }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke lagre'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre'); }
     finally { setLoading(false); }
   };
 
@@ -1460,7 +1460,7 @@ function SubjectFormModal({ subject, config, instLevel, onClose, onSaved }: {
         toast.success('Fag opprettet' + (selectedProgramIds.size > 0 ? ` og lagt til i ${selectedProgramIds.size} ${config.programLabel.toLowerCase()}${selectedProgramIds.size > 1 ? 'er' : ''}` : ''));
       }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke lagre'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre'); }
     finally { setLoading(false); }
   };
 

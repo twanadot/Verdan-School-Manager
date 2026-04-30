@@ -512,7 +512,7 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
         onClose();
       }
       onSaved();
-    } catch (err: any) { setError(err.response?.data?.error || 'Kunne ikke opprette bookingserie'); }
+    } catch (err: any) { setError(err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke opprette bookingserie'); }
     finally { setLoading(false); }
   };
 
