@@ -132,9 +132,7 @@ public class UserService {
         List<String> errors = InputValidator.validateUser(
                 finalUsername, req.role(), req.email(), req.phone());
 
-        if (req.password() == null || req.password().length() < 4) {
-            errors.add("Password must be at least 4 characters.");
-        }
+        errors.addAll(InputValidator.validatePassword(req.password()));
 
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);

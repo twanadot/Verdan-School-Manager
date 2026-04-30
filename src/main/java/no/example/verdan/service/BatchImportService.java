@@ -43,13 +43,35 @@ public class BatchImportService {
         this.authService = new AuthService();
     }
 
-    /** Generate a random 8-character password. */
+    /** Generate a random 12-character password that meets security requirements. */
     private String generatePassword() {
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) {
-            sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
+        String upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        String lower = "abcdefghjkmnpqrstuvwxyz";
+        String digits = "23456789";
+        String special = "!@#$%&*";
+        String all = upper + lower + digits + special;
+
+        // Guarantee at least one of each required type
+        StringBuilder sb = new StringBuilder(12);
+        sb.append(upper.charAt(RANDOM.nextInt(upper.length())));
+        sb.append(lower.charAt(RANDOM.nextInt(lower.length())));
+        sb.append(digits.charAt(RANDOM.nextInt(digits.length())));
+        sb.append(special.charAt(RANDOM.nextInt(special.length())));
+
+        // Fill remaining with random chars
+        for (int i = 4; i < 12; i++) {
+            sb.append(all.charAt(RANDOM.nextInt(all.length())));
         }
-        return sb.toString();
+
+        // Shuffle to avoid predictable positions
+        char[] chars = sb.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = RANDOM.nextInt(i + 1);
+            char tmp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = tmp;
+        }
+        return new String(chars);
     }
 
     /** Generate a unique username from first + last name. */
