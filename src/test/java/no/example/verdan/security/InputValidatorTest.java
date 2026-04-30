@@ -240,8 +240,13 @@ class InputValidatorTest {
         }
 
         @Test
+        void withHyphen() {
+            assertTrue(InputValidator.isValidSubjectCode("MAT-101"));
+        }
+
+        @Test
         void withSpecialChars() {
-            assertFalse(InputValidator.isValidSubjectCode("MAT-101"));
+            assertFalse(InputValidator.isValidSubjectCode("MAT@101"));
         }
 
         @Test
