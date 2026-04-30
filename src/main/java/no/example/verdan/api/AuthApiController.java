@@ -24,7 +24,7 @@ public class AuthApiController {
     private final AuthService authService = new AuthService();
 
     // Rate limiter: max 10 login attempts per IP per 15 minutes
-    private final RateLimiter loginRateLimiter = new RateLimiter(10, 15 * 60 * 1000);
+    private final RateLimiter loginRateLimiter = new RateLimiter(50, 15 * 60 * 1000);
 
     public void registerRoutes(Javalin app) {
         app.post("/api/login", this::login);
