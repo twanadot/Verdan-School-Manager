@@ -1,6 +1,6 @@
 # Verdan University Manager
 
-![CI Pipeline](https://github.com/<your-org>/verdan/actions/workflows/ci.yml/badge.svg)
+
 
 **Verdan** is a comprehensive university management system with a **React web app** client connected to a **REST API** powered by Javalin, with **MySQL** for persistence.
 
@@ -50,9 +50,9 @@ The entire system (MySQL + API + React frontend) can be deployed with one comman
 ```bash
 docker-compose up -d --build
 ```
-* **React Web App:** `http://localhost:3000`
-* **REST API:** `http://localhost:7070`
-* **Swagger UI:** `http://localhost:7070/swagger`
+* **React Web App:** `http://localhost:4000`
+* **REST API:** `http://localhost:8081`
+* **Swagger UI:** `http://localhost:8081/swagger`
 * MySQL is started automatically and data is persisted in a Docker volume
 
 ### How to Run Locally (Command Line)
@@ -88,7 +88,7 @@ Open `http://localhost:5173` in your browser.
     * Right-click > Run As > Java Application.
 
 ### How to Run Tests
-The project contains 100+ unit, integration, and security tests. Run them using:
+The project contains unit, integration, and security tests. Run them using:
 ```bash
 mvn test
 ```
@@ -107,9 +107,9 @@ The system comes pre-loaded with the following users for testing:
 
 ## REST API Endpoints
 
-Base URL: `http://localhost:7070`
+Base URL: `http://localhost:8081` (Docker) / `http://localhost:8080` (lokal)
 
-📖 **Full interactive API documentation:** [http://localhost:7070/swagger](http://localhost:7070/swagger)
+📖 **Full interactive API documentation:** [http://localhost:8081/swagger](http://localhost:8081/swagger)
 
 | Method | Endpoint | Description | Access |
 | :--- | :--- | :--- | :--- |

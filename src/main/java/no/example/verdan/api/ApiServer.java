@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Main REST API server for Verdan University Manager.
  * 
- * Starts a Javalin HTTP server on port 7070 with JWT-based authentication,
+ * Starts a Javalin HTTP server on port 8080 with JWT-based authentication,
  * CORS support, and RESTful endpoints for all entities.
  */
 public class ApiServer {

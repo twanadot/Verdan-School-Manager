@@ -42,14 +42,14 @@ public class AttendanceApiController {
     private void getAll(Context ctx) {
         String role = AuthMiddleware.getRole(ctx);
         String username = AuthMiddleware.getUsername(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(attendanceService.getAttendance(role, username, institutionId, isSuperAdmin)));
     }
 
     private void getById(Context ctx) {
         int id = Integer.parseInt(ctx.pathParam("id"));
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(attendanceService.getAttendanceById(id, institutionId, isSuperAdmin)));
     }
@@ -58,7 +58,7 @@ public class AttendanceApiController {
         String username = ctx.pathParam("username");
         String role = AuthMiddleware.getRole(ctx);
         String currentUser = AuthMiddleware.getUsername(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
 
         if ("STUDENT".equalsIgnoreCase(role) && !username.equalsIgnoreCase(currentUser)) {
             ctx.status(403).json(ApiResponse.error("Students can only view their own attendance"));
@@ -71,7 +71,7 @@ public class AttendanceApiController {
     private void getAbsenceRate(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         String username = ctx.pathParam("username");
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.json(ApiResponse.ok(attendanceService.getAbsenceRate(username, institutionId)));
     }
 
@@ -79,21 +79,21 @@ public class AttendanceApiController {
     private void getAbsenceStats(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         String username = ctx.pathParam("username");
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.json(ApiResponse.ok(attendanceService.getSubjectAbsenceStats(username, institutionId)));
     }
 
     /** Per-subject absence stats for the current student (student only). */
     private void getMyAbsenceStats(Context ctx) {
         String username = AuthMiddleware.getUsername(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.json(ApiResponse.ok(attendanceService.getSubjectAbsenceStats(username, institutionId)));
     }
 
     private void create(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         AttendanceDto.Request req = ctx.bodyAsClass(AttendanceDto.Request.class);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.status(201).json(ApiResponse.ok(attendanceService.createAttendance(req, institutionId)));
     }
 
@@ -101,7 +101,7 @@ public class AttendanceApiController {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         int id = Integer.parseInt(ctx.pathParam("id"));
         AttendanceDto.Request req = ctx.bodyAsClass(AttendanceDto.Request.class);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(attendanceService.updateAttendance(id, req, institutionId, isSuperAdmin)));
     }
@@ -109,7 +109,7 @@ public class AttendanceApiController {
     private void delete(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         int id = Integer.parseInt(ctx.pathParam("id"));
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         attendanceService.deleteAttendance(id, institutionId, isSuperAdmin);
         ctx.status(204);

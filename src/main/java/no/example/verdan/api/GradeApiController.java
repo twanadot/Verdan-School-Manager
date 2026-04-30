@@ -41,14 +41,14 @@ public class GradeApiController {
     private void getAll(Context ctx) {
         String role = AuthMiddleware.getRole(ctx);
         String username = AuthMiddleware.getUsername(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(gradeService.getGrades(role, username, institutionId, isSuperAdmin)));
     }
 
     private void getById(Context ctx) {
         int id = Integer.parseInt(ctx.pathParam("id"));
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(gradeService.getGradeById(id, institutionId, isSuperAdmin)));
     }
@@ -57,7 +57,7 @@ public class GradeApiController {
         String username = ctx.pathParam("username");
         String role = AuthMiddleware.getRole(ctx);
         String currentUser = AuthMiddleware.getUsername(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
 
         if ("STUDENT".equalsIgnoreCase(role) && !username.equalsIgnoreCase(currentUser)) {
             ctx.status(403).json(ApiResponse.error("Students can only view their own grades"));
@@ -69,7 +69,7 @@ public class GradeApiController {
 
     private void getAverages(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.json(ApiResponse.ok(gradeService.getAverages(institutionId)));
     }
 
@@ -78,7 +78,7 @@ public class GradeApiController {
         GradeDto.Request req = ctx.bodyAsClass(GradeDto.Request.class);
         String creatorUsername = AuthMiddleware.getUsername(ctx);
         String role = AuthMiddleware.getRole(ctx);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         ctx.status(201).json(ApiResponse.ok(gradeService.createGrade(req, creatorUsername, role, institutionId)));
     }
 
@@ -86,7 +86,7 @@ public class GradeApiController {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         int id = Integer.parseInt(ctx.pathParam("id"));
         GradeDto.Request req = ctx.bodyAsClass(GradeDto.Request.class);
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         ctx.json(ApiResponse.ok(gradeService.updateGrade(id, req, institutionId, isSuperAdmin)));
     }
@@ -94,7 +94,7 @@ public class GradeApiController {
     private void delete(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         int id = Integer.parseInt(ctx.pathParam("id"));
-        int institutionId = ctx.attribute(AuthMiddleware.ATTR_INSTITUTION_ID);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         gradeService.deleteGrade(id, institutionId, isSuperAdmin);
         ctx.status(204);

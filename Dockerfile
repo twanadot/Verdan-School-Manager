@@ -22,7 +22,7 @@ COPY --from=build /app/target/verdan-0.1.0.jar /app/app.jar
 COPY --from=build /app/target/lib /app/lib
 
 # Expose the Javalin port
-EXPOSE 7070
+EXPOSE 8080
 
 # Database connection is configured via environment variables (DB_HOST, DB_USER, DB_PASS)
 

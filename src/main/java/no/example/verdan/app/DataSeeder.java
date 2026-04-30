@@ -42,10 +42,10 @@ public class DataSeeder {
 
         List<Institution> institutions = instDao.findAll();
 
-        Institution gokstad   = findByName(institutions, "Gokstad akademiet");
-        Institution usn       = findByName(institutions, "USN Vestfold");
-        Institution svgs      = findByName(institutions, "Sandefjord Videregående Skole");
-        Institution ranvik    = findByName(institutions, "Ranvik Ungdomsskole");
+        Institution gokstad = findByName(institutions, "Gokstad akademiet");
+        Institution usn = findByName(institutions, "USN Vestfold");
+        Institution svgs = findByName(institutions, "Sandefjord Videregående Skole");
+        Institution ranvik = findByName(institutions, "Ranvik Ungdomsskole");
         Institution innlandet = findByName(institutions, "Universitetet i Innlandet");
 
         // --- 2. USERS ---
@@ -131,7 +131,6 @@ public class DataSeeder {
     // ===================== INSTITUTIONS =====================
     private void seedInstitutions(InstitutionDao dao) {
 
-
         Institution gokstad = new Institution("Gokstad akademiet");
         gokstad.setLocation("Sandefjord");
         gokstad.setLevel("FAGSKOLE");
@@ -160,50 +159,71 @@ public class DataSeeder {
 
     // ===================== USERS =====================
     private void seedUsers(UserDao dao, Institution gokstad,
-                           Institution usn, Institution svgs, Institution ranvik, Institution innlandet) {
+            Institution usn, Institution svgs, Institution ranvik, Institution innlandet) {
 
         // Super Admin
         ensureUser(dao, "admin", "admin123", "SUPER_ADMIN", null, null, null, null, null);
 
         // Institution Admin
-        ensureUser(dao, "inst-admin", "admin123", "INSTITUTION_ADMIN", "inst-admin", "inst-admin", null, null, gokstad);
+        ensureUser(dao, "inst-admin", "123456", "INSTITUTION_ADMIN", "inst-admin", "inst-admin", null, null, gokstad);
 
         // Teachers
-        ensureUser(dao, "teacher", "teacher123", "TEACHER", "teacher", "teacher", "454545454", "teacher@gmail.com", gokstad);
-        ensureUser(dao, "anne.larsen", "password123", "TEACHER", "Anne", "Larsen", "48910233", "anne.larsen@school.no", gokstad);
-        ensureUser(dao, "bjorn.k", "password123", "TEACHER", "Bjorn", "Kristoffersen", "92344110", "bjorn.k@school.no", usn);
-        ensureUser(dao, "camilla.h", "password123", "TEACHER", "Camilla", "Hagen", "41255090", "camilla.h@school.no", svgs);
-        ensureUser(dao, "daniel.n", "password123", "TEACHER", "Daniel", "Nilsen", "95832177", "daniel.n@school.no", ranvik);
+        ensureUser(dao, "teacher", "teacher123", "TEACHER", "teacher", "teacher", "454545454", "teacher@gmail.com",
+                gokstad);
+        ensureUser(dao, "anne.larsen", "password123", "TEACHER", "Anne", "Larsen", "48910233", "anne.larsen@school.no",
+                gokstad);
+        ensureUser(dao, "bjorn.k", "password123", "TEACHER", "Bjorn", "Kristoffersen", "92344110", "bjorn.k@school.no",
+                usn);
+        ensureUser(dao, "camilla.h", "password123", "TEACHER", "Camilla", "Hagen", "41255090", "camilla.h@school.no",
+                svgs);
+        ensureUser(dao, "daniel.n", "password123", "TEACHER", "Daniel", "Nilsen", "95832177", "daniel.n@school.no",
+                ranvik);
         ensureUser(dao, "eva.s", "password123", "TEACHER", "Eva", "Solberg", "47800233", "eva.s@school.no", gokstad);
-        ensureUser(dao, "fredrik.a", "password123", "TEACHER", "Fredrik", "Aas", "90774429", "fredrik.a@school.no", svgs);
+        ensureUser(dao, "fredrik.a", "password123", "TEACHER", "Fredrik", "Aas", "90774429", "fredrik.a@school.no",
+                svgs);
         ensureUser(dao, "guro.m", "password123", "TEACHER", "Guro", "Myhre", "99213344", "guro.m@school.no", ranvik);
         ensureUser(dao, "henrik.o", "password123", "TEACHER", "Henrik", "Ostby", "48499122", "henrik.o@school.no", usn);
-        ensureUser(dao, "ingrid.t", "password123", "TEACHER", "Ingrid", "Thorvaldsen", "91155287", "ingrid.t@school.no", innlandet);
+        ensureUser(dao, "ingrid.t", "password123", "TEACHER", "Ingrid", "Thorvaldsen", "91155287", "ingrid.t@school.no",
+                innlandet);
         ensureUser(dao, "jonas.v", "password123", "TEACHER", "Jonas", "Vik", "45123998", "jonas.v@school.no", svgs);
 
         // Students
-        ensureUser(dao, "student", "student123", "STUDENT", "student", "student", "4545454545", "student@gmail.com", gokstad);
-        ensureUser(dao, "maria.o", "password123", "STUDENT", "Maria", "Olsen", "48622990", "maria.o@student.no", gokstad);
-        ensureUser(dao, "thomas.b", "password123", "STUDENT", "Thomas", "Berg", "90912233", "thomas.b@student.no", ranvik);
-        ensureUser(dao, "selma.e", "password123", "STUDENT", "Selma", "Eriksen", "40455121", "selma.e@student.no", svgs);
-        ensureUser(dao, "marius.h", "password123", "STUDENT", "Marius", "Holm", "99812234", "marius.h@student.no", svgs);
-        ensureUser(dao, "sofie.b", "password123", "STUDENT", "Sofie", "Bakke", "93412980", "sofie.b@student.no", innlandet);
-        ensureUser(dao, "tobias.a", "password123", "STUDENT", "Tobias", "Andersen", "48992211", "tobias.a@student.no", usn);
-        ensureUser(dao, "julie.a", "password123", "STUDENT", "Julie", "Antonsen", "99021133", "julie.a@student.no", gokstad);
+        ensureUser(dao, "student", "student123", "STUDENT", "student", "student", "4545454545", "student@gmail.com",
+                gokstad);
+        ensureUser(dao, "maria.o", "password123", "STUDENT", "Maria", "Olsen", "48622990", "maria.o@student.no",
+                gokstad);
+        ensureUser(dao, "thomas.b", "password123", "STUDENT", "Thomas", "Berg", "90912233", "thomas.b@student.no",
+                ranvik);
+        ensureUser(dao, "selma.e", "password123", "STUDENT", "Selma", "Eriksen", "40455121", "selma.e@student.no",
+                svgs);
+        ensureUser(dao, "marius.h", "password123", "STUDENT", "Marius", "Holm", "99812234", "marius.h@student.no",
+                svgs);
+        ensureUser(dao, "sofie.b", "password123", "STUDENT", "Sofie", "Bakke", "93412980", "sofie.b@student.no",
+                innlandet);
+        ensureUser(dao, "tobias.a", "password123", "STUDENT", "Tobias", "Andersen", "48992211", "tobias.a@student.no",
+                usn);
+        ensureUser(dao, "julie.a", "password123", "STUDENT", "Julie", "Antonsen", "99021133", "julie.a@student.no",
+                gokstad);
         ensureUser(dao, "emil.h", "password123", "STUDENT", "Emil", "Hansen", "40012298", "emil.h@student.no", ranvik);
         ensureUser(dao, "nora.l", "password123", "STUDENT", "Nora", "Lie", "47820043", "nora.l@student.no", svgs);
-        ensureUser(dao, "kasper.m", "password123", "STUDENT", "Kasper", "Moe", "47655291", "kasper.m@student.no", innlandet);
-        ensureUser(dao, "helene.s", "password123", "STUDENT", "Helene", "Sjoberg", "41451288", "helene.s@student.no", innlandet);
-        ensureUser(dao, "oliver.f", "password123", "STUDENT", "Oliver", "Frydenlund", "90321192", "oliver.f@student.no", usn);
-        ensureUser(dao, "kristin.r", "password123", "STUDENT", "Kristin", "Ruud", "48099227", "kristin.r@student.no", usn);
-        ensureUser(dao, "adrian.k", "password123", "STUDENT", "Adrian", "Knutsen", "95541220", "adrian.k@student.no", gokstad);
+        ensureUser(dao, "kasper.m", "password123", "STUDENT", "Kasper", "Moe", "47655291", "kasper.m@student.no",
+                innlandet);
+        ensureUser(dao, "helene.s", "password123", "STUDENT", "Helene", "Sjoberg", "41451288", "helene.s@student.no",
+                innlandet);
+        ensureUser(dao, "oliver.f", "password123", "STUDENT", "Oliver", "Frydenlund", "90321192", "oliver.f@student.no",
+                usn);
+        ensureUser(dao, "kristin.r", "password123", "STUDENT", "Kristin", "Ruud", "48099227", "kristin.r@student.no",
+                usn);
+        ensureUser(dao, "adrian.k", "password123", "STUDENT", "Adrian", "Knutsen", "95541220", "adrian.k@student.no",
+                gokstad);
         ensureUser(dao, "emma.l", "password123", "STUDENT", "Emma", "Lunde", "48920110", "emma.l@student.no", gokstad);
-        ensureUser(dao, "ari93", "password123", "STUDENT", "Aridani Dahl", "Guerra", "47631022", "ari_dani_93@hotmail.com", usn);
+        ensureUser(dao, "ari93", "password123", "STUDENT", "Aridani Dahl", "Guerra", "47631022",
+                "ari_dani_93@hotmail.com", usn);
     }
 
     // ===================== ROOMS =====================
     private void seedRooms(RoomDao dao, Institution gokstad, Institution usn,
-                           Institution svgs, Institution ranvik, Institution innlandet) {
+            Institution svgs, Institution ranvik, Institution innlandet) {
         saveRoom(dao, "R101", "Classroom", 28, ranvik);
         saveRoom(dao, "R102", "Classroom", 30, gokstad);
         saveRoom(dao, "R201", "Group Room", 6, usn);
@@ -221,7 +241,7 @@ public class DataSeeder {
     // ===================== SUBJECTS =====================
     // Subject level always matches the institution's level
     private void seedSubjects(SubjectDao dao, Institution gokstad, Institution usn,
-                              Institution svgs, Institution ranvik, Institution innlandet) {
+            Institution svgs, Institution ranvik, Institution innlandet) {
         saveSubject(dao, "MAT101", "Basic Mathematics", gokstad);
         saveSubject(dao, "ENG102", "Academic English", gokstad);
         saveSubject(dao, "PRO103", "Programming 1", gokstad);
@@ -237,7 +257,7 @@ public class DataSeeder {
 
     // ===================== SUBJECT ASSIGNMENTS =====================
     private void seedSubjectAssignments(SubjectAssignmentDao dao, Institution gokstad,
-                                        Institution usn, Institution svgs, Institution ranvik) {
+            Institution usn, Institution svgs, Institution ranvik) {
         saveAssignment(dao, "eva.s", "TEACHER", "PRO103", gokstad);
         saveAssignment(dao, "maria.o", "STUDENT", "PRO103", gokstad);
         saveAssignment(dao, "guro.m", "TEACHER", "GEO107", ranvik);
@@ -282,41 +302,42 @@ public class DataSeeder {
         Room f303 = rooms.stream().filter(r -> "F303".equals(r.getRoomNumber())).findFirst().orElse(null);
         Room r2003 = rooms.stream().filter(r -> "2003".equals(r.getRoomNumber())).findFirst().orElse(null);
 
-        if (f303 == null || r2003 == null) return;
+        if (f303 == null || r2003 == null)
+            return;
 
         // MAT101 bookings: Mon-Thu, 09:00-14:00, Room F303
         saveBooking(dao, "admin", "MAT101", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 7, 9, 0), LocalDateTime.of(2026, 4, 7, 14, 0));
+                LocalDateTime.of(2026, 4, 7, 9, 0), LocalDateTime.of(2026, 4, 7, 14, 0));
         saveBooking(dao, "admin", "MAT101", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 8, 9, 0), LocalDateTime.of(2026, 4, 8, 14, 0));
+                LocalDateTime.of(2026, 4, 8, 9, 0), LocalDateTime.of(2026, 4, 8, 14, 0));
         saveBooking(dao, "admin", "MAT101", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 9, 9, 0), LocalDateTime.of(2026, 4, 9, 14, 0));
+                LocalDateTime.of(2026, 4, 9, 9, 0), LocalDateTime.of(2026, 4, 9, 14, 0));
         saveBooking(dao, "admin", "MAT101", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 10, 9, 0), LocalDateTime.of(2026, 4, 10, 14, 0));
+                LocalDateTime.of(2026, 4, 10, 9, 0), LocalDateTime.of(2026, 4, 10, 14, 0));
 
         // ENG102 bookings: Mon-Thu, 09:00-14:00, Room 2003
         saveBooking(dao, "admin", "ENG102", "", gokstad, r2003,
-            LocalDateTime.of(2026, 4, 7, 9, 0), LocalDateTime.of(2026, 4, 7, 14, 0));
+                LocalDateTime.of(2026, 4, 7, 9, 0), LocalDateTime.of(2026, 4, 7, 14, 0));
         saveBooking(dao, "admin", "ENG102", "", gokstad, r2003,
-            LocalDateTime.of(2026, 4, 8, 9, 0), LocalDateTime.of(2026, 4, 8, 14, 0));
+                LocalDateTime.of(2026, 4, 8, 9, 0), LocalDateTime.of(2026, 4, 8, 14, 0));
         saveBooking(dao, "admin", "ENG102", "", gokstad, r2003,
-            LocalDateTime.of(2026, 4, 9, 9, 0), LocalDateTime.of(2026, 4, 9, 14, 0));
+                LocalDateTime.of(2026, 4, 9, 9, 0), LocalDateTime.of(2026, 4, 9, 14, 0));
         saveBooking(dao, "admin", "ENG102", "", gokstad, r2003,
-            LocalDateTime.of(2026, 4, 10, 9, 0), LocalDateTime.of(2026, 4, 10, 14, 0));
+                LocalDateTime.of(2026, 4, 10, 9, 0), LocalDateTime.of(2026, 4, 10, 14, 0));
 
         // PRO103 bookings: Tue-Thu, 15:00-17/18:00, Room F303
         saveBooking(dao, "admin", "PRO103", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 8, 15, 0), LocalDateTime.of(2026, 4, 8, 17, 0));
+                LocalDateTime.of(2026, 4, 8, 15, 0), LocalDateTime.of(2026, 4, 8, 17, 0));
         saveBooking(dao, "admin", "PRO103", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 9, 15, 0), LocalDateTime.of(2026, 4, 9, 18, 0));
+                LocalDateTime.of(2026, 4, 9, 15, 0), LocalDateTime.of(2026, 4, 9, 18, 0));
         saveBooking(dao, "admin", "PRO103", "", gokstad, f303,
-            LocalDateTime.of(2026, 4, 10, 15, 0), LocalDateTime.of(2026, 4, 10, 18, 0));
+                LocalDateTime.of(2026, 4, 10, 15, 0), LocalDateTime.of(2026, 4, 10, 18, 0));
     }
 
     // ===================== HELPER METHODS =====================
 
     private void ensureUser(UserDao dao, String username, String password, String role,
-                            String firstName, String lastName, String phone, String email, Institution inst) {
+            String firstName, String lastName, String phone, String email, Institution inst) {
         if (dao.findByUsername(username).isEmpty()) {
             User u = new User();
             u.setUsername(username);
@@ -344,7 +365,8 @@ public class DataSeeder {
         dao.save(s);
     }
 
-    private void saveAssignment(SubjectAssignmentDao dao, String username, String role, String subject, Institution inst) {
+    private void saveAssignment(SubjectAssignmentDao dao, String username, String role, String subject,
+            Institution inst) {
         SubjectAssignment sa = new SubjectAssignment();
         sa.setUsername(username);
         sa.setRole(role);
@@ -354,7 +376,7 @@ public class DataSeeder {
     }
 
     private void saveBooking(BookingDao dao, String createdBy, String subject, String desc,
-                             Institution inst, Room room, LocalDateTime start, LocalDateTime end) {
+            Institution inst, Room room, LocalDateTime start, LocalDateTime end) {
         Booking b = new Booking();
         b.setCreatedBy(createdBy);
         b.setSubject(subject);
@@ -369,8 +391,8 @@ public class DataSeeder {
 
     private Institution findByName(List<Institution> list, String name) {
         return list.stream()
-            .filter(i -> name.equals(i.getName()))
-            .findFirst()
-            .orElse(list.get(0)); // Fallback to first institution
+                .filter(i -> name.equals(i.getName()))
+                .findFirst()
+                .orElse(list.get(0)); // Fallback to first institution
     }
 }
