@@ -28,7 +28,7 @@ public abstract class BaseDao<T> {
   public List<T> findAll(int institutionId) {
     EntityManager em = HibernateUtil.emf().createEntityManager();
     try {
-      return em.createQuery("select e from " + type.getSimpleName() + " e where e.institution.id = :instId", type)
+      return em.createQuery("select e from " + type.getSimpleName() + " e join fetch e.institution where e.institution.id = :instId", type)
           .setParameter("instId", institutionId)
           .getResultList();
     } finally {

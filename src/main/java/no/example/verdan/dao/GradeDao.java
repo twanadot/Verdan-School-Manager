@@ -94,7 +94,7 @@ public class GradeDao extends BaseDao<Grade> {
         try {
             return em.createQuery(
                     "select distinct g " +
-                    "from Grade g, SubjectAssignment sa " +
+                    "from Grade g join fetch g.student join fetch g.institution, SubjectAssignment sa " +
                     "where lower(g.teacherUsername) = lower(:t) " +
                     "  and lower(g.student.username) = lower(sa.username) " +
                     "  and upper(sa.role) = 'STUDENT' " +
@@ -114,7 +114,7 @@ public class GradeDao extends BaseDao<Grade> {
         EntityManager em = HibernateUtil.emf().createEntityManager();
         try {
             return em.createQuery(
-                "select g from Grade g " +
+                "select g from Grade g join fetch g.student join fetch g.institution " +
                 "where g.institution.id = :instId " +
                 "order by g.subject asc, g.dateGiven desc, g.id desc",
                 Grade.class)

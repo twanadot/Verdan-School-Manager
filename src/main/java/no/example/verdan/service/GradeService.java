@@ -41,7 +41,14 @@ public class GradeService {
         this.assignmentDao = assignmentDao;
     }
 
-    /** Get grades based on user role. */
+    /**
+     * Get grades based on user role.
+     *
+     * NOTE: IV enforcement is handled in real-time by AttendanceService when
+     * attendance records are created, updated or deleted (checkAndApplyIV).
+     * We no longer call enforceIV on read — this eliminates the N+1 query
+     * problem that caused this endpoint to make 5-10 DB queries per student.
+     */
     public List<GradeDto.Response> getGrades(String role, String username, int institutionId, boolean isSuperAdmin) {
         List<Grade> grades;
         if (isSuperAdmin) {
@@ -53,8 +60,6 @@ public class GradeService {
         } else {
             grades = gradeDao.findAllGrades(institutionId);
         }
-        // Enforce IV status in real-time based on current absence data
-        enforceIV(grades, institutionId);
         return grades.stream().map(this::toResponse).toList();
     }
 
@@ -68,7 +73,6 @@ public class GradeService {
     /** Get grades for a specific student. */
     public List<GradeDto.Response> getGradesByStudent(String username, int institutionId) {
         List<Grade> grades = gradeDao.findByStudentUsername(username, institutionId);
-        enforceIV(grades, institutionId);
         return grades.stream().map(this::toResponse).toList();
     }
 
@@ -392,10 +396,8 @@ public class GradeService {
             byInst.computeIfAbsent(g.getInstitution().getId(), k -> new java.util.ArrayList<>()).add(g);
         }
 
-        // Enforce IV for each institution's grades
-        for (var entry : byInst.entrySet()) {
-            enforceIV(entry.getValue(), entry.getKey());
-        }
+        // NOTE: IV enforcement is handled in real-time by AttendanceService
+        // (checkAndApplyIV), so we don't need to re-check on read.
 
         List<GradeDto.EducationLevel> levels = new java.util.ArrayList<>();
         for (var entry : byInst.entrySet()) {

@@ -28,7 +28,8 @@ public class AttendanceDao extends BaseDao<Attendance> {
         try {
             return em.createQuery(
                     "select a from Attendance a " +
-                    " join a.student s " +
+                    " join fetch a.student s " +
+                    " join fetch a.institution " +
                     " where lower(s.username) = lower(:u) " +
                     "   and a.institution.id = :instId " +
                     " order by a.dateOf desc",
@@ -50,7 +51,8 @@ public class AttendanceDao extends BaseDao<Attendance> {
         try {
             return em.createQuery(
                     "select a from Attendance a " +
-                    " join a.student s " +
+                    " join fetch a.student s " +
+                    " join fetch a.institution " +
                     " where a.institution.id = :instId " +
                     " order by a.dateOf desc",
                     Attendance.class)
@@ -76,7 +78,8 @@ public class AttendanceDao extends BaseDao<Attendance> {
             return em.createQuery(
                     "select distinct a " +
                     "from Attendance a " +
-                    " join a.student s " +
+                    " join fetch a.student s " +
+                    " join fetch a.institution " +
                     " join SubjectAssignment sas on lower(sas.username) = lower(s.username) " +
                     " join SubjectAssignment tat on tat.subject = sas.subject " +
                     "where upper(sas.role) = 'STUDENT' " +
