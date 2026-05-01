@@ -1,13 +1,15 @@
-# Stage 1: Build the application using Maven
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+# Stage 1: Build the application using Maven Wrapper
+FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
-# Copy pom.xml and source code
+# Copy Maven Wrapper and project files
+COPY mvnw .
+COPY .mvn .mvn
 COPY pom.xml .
 COPY src ./src
 
-# Package the application (skipping tests since they were run locally)
-RUN mvn clean package -DskipTests
+# Make wrapper executable and package
+RUN chmod +x mvnw && ./mvnw clean package -B -DskipTests
 
 # Stage 2: Create a lightweight runtime image
 FROM eclipse-temurin:21-jre-alpine

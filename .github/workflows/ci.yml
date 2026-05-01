@@ -37,7 +37,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven'
 
       - name: Wait for MySQL to be ready
         run: |
@@ -51,7 +50,7 @@ jobs:
           done
 
       - name: Build (compile + package)
-        run: mvn clean package -B -DskipTests
+        run: chmod +x mvnw && ./mvnw clean package -B -DskipTests
         env:
           DB_HOST: 127.0.0.1
           DB_USER: root
@@ -60,7 +59,7 @@ jobs:
           MYSQL_SSL: "false"
 
       - name: Run tests
-        run: mvn test -B
+        run: ./mvnw test -B
         env:
           DB_HOST: 127.0.0.1
           DB_USER: root

@@ -61,9 +61,10 @@
 
 ### Forutsetninger
 * Java JDK 21+
-* Maven
 * Node.js 22+ (for React-frontend)
 * Docker og Docker Compose (for full stack)
+
+> **Maven er ikke nødvendig** — prosjektet bruker Maven Wrapper (`./mvnw`) som laster ned riktig versjon automatisk.
 
 ### Miljøvariabler
 Kopier `.env.example` til `.env` og fyll inn verdier:
@@ -96,7 +97,8 @@ docker-compose up -d mysql-db
 
 **2. Start REST API (i en egen terminal):**
 ```bash
-mvn compile exec:java
+./mvnw compile exec:java      # Linux/Mac
+mvnw.cmd compile exec:java    # Windows
 ```
 
 **3. Start React Web App (i en egen terminal):**
@@ -120,7 +122,8 @@ npm run dev
 
 ### Kjøre tester
 ```bash
-mvn test
+./mvnw test      # Linux/Mac
+mvnw.cmd test    # Windows
 ```
 
 ## Innlogging (demodata)
