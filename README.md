@@ -109,17 +109,6 @@ npm run dev
 ```
 Åpne `http://localhost:5173` i nettleseren. Vite proxyer automatisk API-kall til backend.
 
-### Kjøre i Eclipse
-
-1.  **Importer prosjektet:**
-    * File > Import > Maven > Existing Maven Projects.
-    * Velg prosjektmappen.
-2.  **Oppdater avhengigheter:**
-    * Høyreklikk prosjekt > Maven > Update Project... (Merk av «Force Update»).
-3.  **Kjør API:**
-    * Finn `src/main/java/no/example/verdan/api/ApiServer.java`.
-    * Høyreklikk > Run As > Java Application.
-
 ### Kjøre tester
 ```bash
 ./mvnw test      # Linux/Mac

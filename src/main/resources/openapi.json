@@ -1,17 +1,21 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Verdan University Manager API",
-    "description": "REST API for managing users, grades, attendance, bookings, subjects, and rooms at Verdan University.\n\nAll endpoints (except `/api/login` and `/api/health`) require a JWT Bearer token in the `Authorization` header.",
-    "version": "1.0.0",
+    "title": "Verdan Skoleadministrasjon API",
+    "description": "REST API for Verdan skoleadministrasjonssystem. Støtter multi-institusjon med rollebasert tilgangskontroll (SUPER_ADMIN, INSTITUTION_ADMIN, TEACHER, STUDENT).\n\nAlle endepunkter (unntatt `/api/login`, `/api/auth/refresh` og `/api/health`) krever JWT Bearer-token i `Authorization`-headeren.\n\nAccess-tokens utløper etter 15 minutter. Bruk `/api/auth/refresh` for å fornye.",
+    "version": "2.0.0",
     "contact": {
-      "name": "Verdan Dev Team"
+      "name": "Verdan Dev Team (Gruppe 2)"
     }
   },
   "servers": [
     {
-      "url": "http://localhost:7070",
-      "description": "Local development"
+      "url": "http://localhost:8080",
+      "description": "Lokal utvikling"
+    },
+    {
+      "url": "http://localhost:8081",
+      "description": "Docker"
     }
   ],
   "components": {
@@ -46,7 +50,7 @@
         "properties": {
           "id": { "type": "integer" },
           "username": { "type": "string" },
-          "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+          "role": { "type": "string", "enum": ["SUPER_ADMIN", "INSTITUTION_ADMIN", "TEACHER", "STUDENT"] },
           "firstName": { "type": "string" },
           "lastName": { "type": "string" },
           "email": { "type": "string" },
@@ -59,7 +63,7 @@
         "properties": {
           "username": { "type": "string", "example": "newuser" },
           "password": { "type": "string", "example": "pass1234" },
-          "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+          "role": { "type": "string", "enum": ["SUPER_ADMIN", "INSTITUTION_ADMIN", "TEACHER", "STUDENT"] },
           "firstName": { "type": "string" },
           "lastName": { "type": "string" },
           "email": { "type": "string" },
@@ -200,7 +204,34 @@
         "responses": {
           "200": { "description": "Login successful, returns JWT token and user info" },
           "400": { "description": "Missing username or password" },
-          "401": { "description": "Invalid credentials" }
+          "401": { "description": "Invalid credentials" },
+          "429": { "description": "Too many login attempts (rate limited)" }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh JWT access token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "New access + refresh tokens" },
+          "400": { "description": "Missing or invalid token type" },
+          "401": { "description": "Expired or invalid refresh token" }
         }
       }
     },
@@ -209,7 +240,7 @@
         "tags": ["Users"],
         "summary": "List all users (ADMIN only)",
         "parameters": [
-          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] }, "description": "Filter by role" }
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["SUPER_ADMIN", "INSTITUTION_ADMIN", "TEACHER", "STUDENT"] }, "description": "Filter by role" }
         ],
         "responses": {
           "200": { "description": "List of users" },
@@ -271,10 +302,38 @@
         }
       }
     },
+    "/api/users/import": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Batch import users from Excel/CSV (ADMIN)",
+        "requestBody": {
+          "required": true,
+          "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Import results with created/failed counts" },
+          "400": { "description": "Invalid file format" }
+        }
+      }
+    },
+    "/api/users/batch-delete": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Batch delete multiple users (ADMIN)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "ids": { "type": "array", "items": { "type": "integer" } } } } } }
+        },
+        "responses": {
+          "200": { "description": "Deleted count" },
+          "403": { "description": "Cannot delete super admins" }
+        }
+      }
+    },
     "/api/grades": {
       "get": {
         "tags": ["Grades"],
-        "summary": "List grades (filtered by role)",
+        "summary": "List grades (filtered by role and institution)",
         "responses": { "200": { "description": "List of grades" } }
       },
       "post": {
@@ -331,10 +390,17 @@
         "responses": { "200": { "description": "Average grades" } }
       }
     },
+    "/api/grades/history": {
+      "get": {
+        "tags": ["Grades"],
+        "summary": "Get education history for logged-in student",
+        "responses": { "200": { "description": "Education history with grades per institution" } }
+      }
+    },
     "/api/attendance": {
       "get": {
         "tags": ["Attendance"],
-        "summary": "List attendance (filtered by role)",
+        "summary": "List attendance (filtered by role and institution)",
         "responses": { "200": { "description": "List of attendance records" } }
       },
       "post": {
@@ -388,10 +454,25 @@
         "responses": { "200": { "description": "Absence rate" } }
       }
     },
+    "/api/attendance/my-absence-stats": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get own absence statistics per subject (STUDENT)",
+        "responses": { "200": { "description": "Absence stats per subject with barometer data" } }
+      }
+    },
+    "/api/attendance/absence-stats/{username}": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get detailed absence statistics for a student (ADMIN/TEACHER)",
+        "parameters": [{ "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Detailed absence stats with program thresholds" } }
+      }
+    },
     "/api/subjects": {
       "get": {
         "tags": ["Subjects"],
-        "summary": "List all subjects",
+        "summary": "List all subjects (filtered by institution)",
         "responses": { "200": { "description": "List of subjects" } }
       },
       "post": {
@@ -435,6 +516,32 @@
         "summary": "Search subjects by name or code",
         "parameters": [{ "name": "q", "in": "query", "schema": { "type": "string" } }],
         "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/api/subjects/{code}/members": {
+      "get": {
+        "tags": ["Subjects"],
+        "summary": "Get teachers and students assigned to a subject",
+        "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "List of assigned members" } }
+      },
+      "post": {
+        "tags": ["Subjects"],
+        "summary": "Assign a user to a subject (ADMIN)",
+        "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "username": { "type": "string" }, "role": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Member assigned" }, "409": { "description": "Already assigned" } }
+      }
+    },
+    "/api/subjects/{code}/members/{username}": {
+      "delete": {
+        "tags": ["Subjects"],
+        "summary": "Remove a user from a subject (ADMIN)",
+        "parameters": [
+          { "name": "code", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Removed" } }
       }
     },
     "/api/rooms": {
@@ -510,17 +617,659 @@
         "summary": "Delete booking (ADMIN/TEACHER)",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Bookings"],
+        "summary": "Update booking (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BookingRequest" } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/bookings/{id}/cancel": {
+      "put": {
+        "tags": ["Bookings"],
+        "summary": "Toggle cancel/restore booking",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Booking cancelled or restored" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Get API metrics per endpoint (ADMIN only)",
+        "responses": { "200": { "description": "Per-endpoint request count, avg/max duration, error rate" } }
+      }
+    },
+    "/api/institutions": {
+      "get": {
+        "tags": ["Institutions"],
+        "summary": "List all institutions (SUPER_ADMIN)",
+        "responses": { "200": { "description": "List of institutions" } }
+      },
+      "post": {
+        "tags": ["Institutions"],
+        "summary": "Create institution (SUPER_ADMIN)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "location": { "type": "string" }, "level": { "type": "string", "enum": ["UNIVERSITET", "FAGSKOLE", "VGS", "UNGDOMSSKOLE"] } } } } } },
+        "responses": { "201": { "description": "Institution created" }, "409": { "description": "Name already exists" } }
+      }
+    },
+    "/api/institutions/{id}": {
+      "put": {
+        "tags": ["Institutions"],
+        "summary": "Update institution (SUPER_ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "location": { "type": "string" }, "level": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Institutions"],
+        "summary": "Soft-delete institution (SUPER_ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/programs": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "List programs (filtered by institution)",
+        "responses": { "200": { "description": "List of programs" } }
+      },
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Create program (ADMIN)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "code"], "properties": { "name": { "type": "string" }, "code": { "type": "string" }, "attendanceRequired": { "type": "boolean" }, "minAttendancePct": { "type": "integer" } } } } } },
+        "responses": { "201": { "description": "Program created" }, "409": { "description": "Code already exists" } }
+      }
+    },
+    "/api/programs/{id}": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "Get program by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Program details" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Programs"],
+        "summary": "Update program (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "code": { "type": "string" }, "attendanceRequired": { "type": "boolean" }, "minAttendancePct": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Programs"],
+        "summary": "Delete program (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/programs/{id}/members": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "Get members of a program",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of program members" } }
+      },
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Add member to program (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "userId": { "type": "integer" } } } } } },
+        "responses": { "201": { "description": "Member added" }, "409": { "description": "Already a member" } }
+      }
+    },
+    "/api/programs/{id}/members/{userId}": {
+      "delete": {
+        "tags": ["Programs"],
+        "summary": "Remove member from program (ADMIN)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "204": { "description": "Removed" } }
+      }
+    },
+    "/api/programs/{id}/subjects/{subjectId}": {
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Add subject to program (ADMIN)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "subjectId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Subject linked" } }
+      },
+      "delete": {
+        "tags": ["Programs"],
+        "summary": "Remove subject from program (ADMIN)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "subjectId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Subject unlinked" } }
+      }
+    },
+    "/api/programs/{id}/archive/{userId}": {
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Archive (graduate) a student from program (ADMIN)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Student archived" } }
+      }
+    },
+    "/api/programs/{id}/restore/{userId}": {
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Restore an archived student (ADMIN)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Student restored" } }
+      }
+    },
+    "/api/programs/graduated": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "Get all graduated students (ADMIN)",
+        "responses": { "200": { "description": "List of graduated students with program info" } }
+      }
+    },
+    "/api/programs/my-graduation": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "Get own graduation status (STUDENT)",
+        "responses": { "200": { "description": "Graduation info for logged-in student" } }
+      }
+    },
+    "/api/programs/archived": {
+      "get": {
+        "tags": ["Programs"],
+        "summary": "Get all archived students (ADMIN)",
+        "responses": { "200": { "description": "List of archived students" } }
+      }
+    },
+    "/api/programs/archive-all": {
+      "post": {
+        "tags": ["Programs"],
+        "summary": "Bulk archive all graduated students (ADMIN)",
+        "responses": { "200": { "description": "Archived count" } }
+      }
+    },
+    "/api/promotion/preview": {
+      "get": {
+        "tags": ["Promotions"],
+        "summary": "Preview level promotions (ADMIN)",
+        "responses": { "200": { "description": "List of students eligible for promotion" } }
+      }
+    },
+    "/api/promotion/advance": {
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Advance students to next level (ADMIN)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "userIds": { "type": "array", "items": { "type": "integer" } } } } } } },
+        "responses": { "200": { "description": "Promotion results" } }
+      }
+    },
+    "/api/promotion/undo": {
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Undo a promotion (ADMIN)",
+        "responses": { "200": { "description": "Promotion undone" } }
+      }
+    },
+    "/api/promotion/transfer": {
+      "post": {
+        "tags": ["Promotions"],
+        "summary": "Transfer student to another program (ADMIN)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "userId": { "type": "integer" }, "targetProgramId": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Student transferred" } }
+      }
+    },
+    "/api/files/upload": {
+      "post": {
+        "tags": ["Files"],
+        "summary": "Upload a file",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "200": { "description": "File ID and metadata" }, "400": { "description": "No file provided" } }
+      }
+    },
+    "/api/files/{id}": {
+      "get": {
+        "tags": ["Files"],
+        "summary": "Download a file by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "File content" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/admissions/portal": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get public admissions portal data",
+        "security": [],
+        "responses": { "200": { "description": "Available programs with open admission periods" } }
+      }
+    },
+    "/api/admissions/available": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get available programs to apply to",
+        "responses": { "200": { "description": "Programs with open admission periods" } }
+      }
+    },
+    "/api/admissions/apply": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Submit application to a program (STUDENT)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "periodId": { "type": "integer" }, "motivation": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Application submitted" }, "409": { "description": "Already applied" } }
+      }
+    },
+    "/api/admissions/my-applications": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get own applications (STUDENT)",
+        "responses": { "200": { "description": "List of own applications with status" } }
+      }
+    },
+    "/api/admissions/applications/{id}/withdraw": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Withdraw an application (STUDENT)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Application withdrawn" } }
+      }
+    },
+    "/api/admissions/periods": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "List admission periods (ADMIN)",
+        "responses": { "200": { "description": "List of admission periods" } }
+      },
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Create admission period (ADMIN)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "programId": { "type": "integer" }, "startDate": { "type": "string", "format": "date" }, "endDate": { "type": "string", "format": "date" }, "maxCapacity": { "type": "integer" } } } } } },
+        "responses": { "201": { "description": "Period created" } }
+      }
+    },
+    "/api/admissions/periods/{id}": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Update admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Admissions"],
+        "summary": "Delete admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/admissions/periods/{id}/close": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Close admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Period closed" } }
+      }
+    },
+    "/api/admissions/periods/{id}/reopen": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Reopen admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Period reopened" } }
+      }
+    },
+    "/api/admissions/periods/{id}/process": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Process applications for period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Applications processed" } }
+      }
+    },
+    "/api/admissions/periods/{id}/enroll-accepted": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Enroll accepted applicants into program (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Enrolled count" } }
+      }
+    },
+    "/api/admissions/periods/{id}/overview": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get period overview with application statistics (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Period stats and application list" } }
+      }
+    },
+    "/api/admissions/periods/{id}/requirements": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get admission requirements for period",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of requirements" } }
+      },
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Set/update requirements for period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Requirements updated" } }
+      }
+    },
+    "/api/admissions/periods/{id}/bulk-publish": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Bulk publish results to applicants (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Results published" } }
+      }
+    },
+    "/api/portal/announcements": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get announcements for institution",
+        "responses": { "200": { "description": "List of announcements" } }
+      },
+      "post": {
+        "tags": ["Portal"],
+        "summary": "Create announcement (ADMIN/TEACHER)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "title": { "type": "string" }, "content": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Announcement created" } }
+      }
+    },
+    "/api/portal/announcements/{id}": {
+      "put": {
+        "tags": ["Portal"],
+        "summary": "Update announcement (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Portal"],
+        "summary": "Delete announcement (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/portal/announcements/{id}/pin": {
+      "put": {
+        "tags": ["Portal"],
+        "summary": "Toggle pin/unpin announcement (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Pin toggled" } }
+      }
+    },
+    "/api/portal/announcements/{id}/comments": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get comments on announcement",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of comments" } }
+      },
+      "post": {
+        "tags": ["Portal"],
+        "summary": "Add comment to announcement",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "content": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Comment added" } }
+      }
+    },
+    "/api/portal/comments/{id}": {
+      "delete": {
+        "tags": ["Portal"],
+        "summary": "Delete comment (owner or ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/portal/folders": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get folders for institution",
+        "responses": { "200": { "description": "List of folders" } }
+      },
+      "post": {
+        "tags": ["Portal"],
+        "summary": "Create folder (ADMIN/TEACHER)",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "subjectCode": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Folder created" } }
+      }
+    },
+    "/api/portal/folders/{id}": {
+      "put": {
+        "tags": ["Portal"],
+        "summary": "Update folder (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Portal"],
+        "summary": "Delete folder and contents (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/portal/folders/{id}/files": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get files in folder",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of files" } }
+      },
+      "post": {
+        "tags": ["Portal"],
+        "summary": "Upload file to folder (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } } } } } },
+        "responses": { "201": { "description": "File uploaded" } }
+      }
+    },
+    "/api/portal/files/{id}": {
+      "delete": {
+        "tags": ["Portal"],
+        "summary": "Delete file from folder (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/portal/files/{id}/download": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Download portal file",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "File content" } }
+      }
+    },
+    "/api/portal/folders/{id}/submissions": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get submissions for folder (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of submissions" } }
+      },
+      "post": {
+        "tags": ["Portal"],
+        "summary": "Submit assignment to folder (STUDENT)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "multipart/form-data": { "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" }, "comment": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Submission uploaded" } }
+      }
+    },
+    "/api/portal/submissions/{id}/review": {
+      "put": {
+        "tags": ["Portal"],
+        "summary": "Review a submission (ADMIN/TEACHER)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string", "enum": ["APPROVED", "REJECTED", "NEEDS_REVISION"] }, "feedback": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Submission reviewed" } }
+      }
+    },
+    "/api/portal/submissions/{id}/download": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Download submission file",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "File content" } }
+      }
+    },
+    "/api/portal/my-submissions": {
+      "get": {
+        "tags": ["Portal"],
+        "summary": "Get own submissions (STUDENT)",
+        "responses": { "200": { "description": "List of own submissions with review status" } }
+      }
+    },
+    "/api/chat/rooms": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Get chat rooms for logged-in user",
+        "responses": { "200": { "description": "List of chat rooms with last message" } }
+      }
+    },
+    "/api/chat/rooms/direct": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Get or create a direct message room",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "recipientId": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Existing or new DM room" } }
+      }
+    },
+    "/api/chat/rooms/group": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Create a group chat room",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "memberIds": { "type": "array", "items": { "type": "integer" } } } } } } },
+        "responses": { "201": { "description": "Group created" } }
+      }
+    },
+    "/api/chat/rooms/{id}": {
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "Delete group chat room (creator only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/chat/rooms/{id}/members": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Get members of a chat room",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of members" } }
+      },
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Add member to group chat",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "userId": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Member added" } }
+      }
+    },
+    "/api/chat/rooms/{id}/members/{userId}": {
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "Remove member from group chat",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Member removed" } }
+      }
+    },
+    "/api/chat/rooms/{id}/hide": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "Hide a chat room from sidebar",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Room hidden" } }
+      }
+    },
+    "/api/chat/rooms/{id}/messages": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Get messages in a chat room",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of messages" } }
+      },
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Send a message to chat room",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "content": { "type": "string" }, "attachmentIds": { "type": "array", "items": { "type": "integer" } } } } } } },
+        "responses": { "201": { "description": "Message sent" } }
+      }
+    },
+    "/api/chat/messages/{id}": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "Edit a message (author only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "content": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Message edited" } }
+      },
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "Delete a message (author or ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" } }
+      }
+    },
+    "/api/chat/messages/{id}/reactions": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Toggle emoji reaction on message",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "emoji": { "type": "string", "example": "👍" } } } } } },
+        "responses": { "200": { "description": "Reaction toggled" } }
+      }
+    },
+    "/api/chat/rooms/{id}/read": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "Mark all messages in room as read",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Marked as read" } }
+      }
+    },
+    "/api/chat/unread-count": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Get total unread message count",
+        "responses": { "200": { "description": "Unread count" } }
+      }
+    },
+    "/api/chat/contacts": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Get available contacts for new conversations",
+        "responses": { "200": { "description": "List of contacts based on role hierarchy" } }
       }
     }
   },
   "tags": [
-    { "name": "System", "description": "System health and status" },
-    { "name": "Authentication", "description": "Login and token management" },
-    { "name": "Users", "description": "User management (ADMIN)" },
-    { "name": "Grades", "description": "Grade management" },
-    { "name": "Attendance", "description": "Attendance tracking" },
-    { "name": "Subjects", "description": "Subject/course management" },
-    { "name": "Rooms", "description": "Room management" },
-    { "name": "Bookings", "description": "Room booking management" }
+    { "name": "System", "description": "Helsesjekk og API-metrikker" },
+    { "name": "Authentication", "description": "Innlogging og token-håndtering" },
+    { "name": "Users", "description": "Brukeradministrasjon" },
+    { "name": "Institutions", "description": "Institusjonsadministrasjon" },
+    { "name": "Programs", "description": "Programstyring og medlemskap" },
+    { "name": "Promotions", "description": "Nivåopprykk og overføringer" },
+    { "name": "Grades", "description": "Karakterhåndtering" },
+    { "name": "Attendance", "description": "Fraværsregistrering" },
+    { "name": "Subjects", "description": "Fag- og fagtildelingsstyring" },
+    { "name": "Rooms", "description": "Romadministrasjon" },
+    { "name": "Bookings", "description": "Timeplan og rombooking" },
+    { "name": "Admissions", "description": "Opptaksadministrasjon og søknader" },
+    { "name": "Portal", "description": "Elevportalen — mapper, filer, innleveringer og kunngjøringer" },
+    { "name": "Chat", "description": "Sanntidschat med WebSocket" },
+    { "name": "Files", "description": "Filopplasting og nedlasting" }
   ]
 }
+

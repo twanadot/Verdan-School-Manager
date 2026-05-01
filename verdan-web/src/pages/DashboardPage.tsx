@@ -1,6 +1,6 @@
 import { useAuth } from '../auth/AuthProvider';
 import { PageHeader } from '../components/PageHeader';
-import { Users, BookOpen, GraduationCap, ClipboardList, DoorOpen, Calendar, Building2, BarChart3, MessageSquare, FileSearch } from 'lucide-react';
+import { Users, BookOpen, BookOpenCheck, GraduationCap, ClipboardList, DoorOpen, Calendar, Building2, BarChart3, MessageSquare, FileSearch } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function DashboardPage() {
@@ -58,6 +58,7 @@ export function DashboardPage() {
             <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
             <DashCard to="/reports" icon={<GraduationCap />} title="Uteksaminerte" description="Se uteksaminerte elever" color="text-indigo-400" />
             <DashCard to="/portal" icon={<FileSearch />} title="Søknadsportal" description="Administrer opptak og søknader" color="text-orange-400" />
+            <DashCard to="/student-portal" icon={<BookOpenCheck />} title="Elevportalen" description="Mapper, innleveringer og kunngjøringer" color="text-emerald-400" />
           </>
         )}
         {user.role === 'TEACHER' && (
@@ -67,6 +68,7 @@ export function DashboardPage() {
             <DashCard to="/attendance" icon={<ClipboardList />} title="Fravær" description="Registrer fravær" color="text-amber-400" />
             <DashCard to="/bookings" icon={<Calendar />} title="Timeplan" description="Book rom for undervisning" color="text-pink-400" />
             <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
+            <DashCard to="/student-portal" icon={<BookOpenCheck />} title="Elevportalen" description="Mapper, innleveringer og kunngjøringer" color="text-emerald-400" />
           </>
         )}
         {user.role === 'STUDENT' && (
@@ -76,6 +78,7 @@ export function DashboardPage() {
             <DashCard to="/attendance" icon={<ClipboardList />} title="Mitt fravær" description="Se din fraværsoversikt" color="text-amber-400" />
             <DashCard to="/chat" icon={<MessageSquare />} title="Chat" description="Send og motta meldinger" color="text-teal-400" />
             <DashCard to="/portal" icon={<FileSearch />} title="Søknadsportal" description="Søk på studier og programmer" color="text-orange-400" />
+            <DashCard to="/student-portal" icon={<BookOpenCheck />} title="Elevportalen" description="Mapper, innleveringer og kunngjøringer" color="text-emerald-400" />
           </>
         )}
       </div>
