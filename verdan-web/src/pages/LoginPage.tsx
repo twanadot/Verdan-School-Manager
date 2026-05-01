@@ -62,7 +62,10 @@ export function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-text-secondary mb-1.5">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-text-secondary mb-1.5"
+              >
                 Brukernavn eller e-post
               </label>
               <input
@@ -79,7 +82,10 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-text-secondary mb-1.5"
+              >
                 Passord
               </label>
               <input
@@ -123,7 +129,10 @@ export function LoginPage() {
                 <button
                   key={demo.user}
                   type="button"
-                  onClick={() => { setUsername(demo.user); setPassword(demo.pass); }}
+                  onClick={() => {
+                    setUsername(demo.user);
+                    setPassword(demo.pass);
+                  }}
                   className="text-xs py-1.5 px-2 rounded-md bg-bg-hover hover:bg-border text-text-secondary hover:text-text-primary transition-colors"
                 >
                   {demo.role}

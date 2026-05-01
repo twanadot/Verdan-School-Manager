@@ -2,17 +2,45 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getChatRooms, getChatMessages, sendChatMessage, editChatMessage,
-  deleteChatMessage, toggleReaction, markRoomRead, getChatContacts,
-  getOrCreateDirectChat, createGroupChat, addChatMember, removeChatMember, deleteGroupChat, hideChatRoom
+  getChatRooms,
+  getChatMessages,
+  sendChatMessage,
+  editChatMessage,
+  deleteChatMessage,
+  toggleReaction,
+  markRoomRead,
+  getChatContacts,
+  getOrCreateDirectChat,
+  createGroupChat,
+  addChatMember,
+  removeChatMember,
+  deleteGroupChat,
+  hideChatRoom,
 } from '../api/chat';
 import { uploadFile, getFileUrl } from '../api/files';
 import { useChatSocket } from '../contexts/ChatSocketProvider';
 import { toast } from 'sonner';
 import {
-  MessageSquare, Send, Plus, X, Search, Users, Paperclip, Smile,
-  MoreHorizontal, Edit3, Trash2, Reply, Check, ChevronLeft, Download,
-  Image as ImageIcon, FileText, UserPlus, Wifi, WifiOff
+  MessageSquare,
+  Send,
+  Plus,
+  X,
+  Search,
+  Users,
+  Paperclip,
+  Smile,
+  MoreHorizontal,
+  Edit3,
+  Trash2,
+  Reply,
+  Check,
+  ChevronLeft,
+  Download,
+  Image as ImageIcon,
+  FileText,
+  UserPlus,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import type { ChatRoom, ChatMessage, ContactUser, SendChatMessageRequest } from '../types';
 
@@ -23,16 +51,25 @@ const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉'
 function toUtc(dateStr: string): string {
   if (!dateStr) return dateStr;
   // If it doesn't end with Z or +/- offset, append Z to treat as UTC
-  if (!/[Z+\-]/.test(dateStr.slice(-6))) return dateStr + 'Z';
+  if (!/[Z+-]/.test(dateStr.slice(-6))) return dateStr + 'Z';
   return dateStr;
 }
 
 /** Generate a consistent avatar color from a name. */
 function nameToColor(name: string): string {
   const colors = [
-    'bg-blue-600', 'bg-purple-600', 'bg-emerald-600', 'bg-rose-600',
-    'bg-amber-600', 'bg-cyan-600', 'bg-pink-600', 'bg-indigo-600',
-    'bg-teal-600', 'bg-orange-600', 'bg-violet-600', 'bg-lime-600',
+    'bg-blue-600',
+    'bg-purple-600',
+    'bg-emerald-600',
+    'bg-rose-600',
+    'bg-amber-600',
+    'bg-cyan-600',
+    'bg-pink-600',
+    'bg-indigo-600',
+    'bg-teal-600',
+    'bg-orange-600',
+    'bg-violet-600',
+    'bg-lime-600',
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -64,11 +101,12 @@ export function ChatPage() {
     staleTime: 10000,
   });
 
-  const activeRoom = rooms.find(r => r.id === activeRoomId);
+  const activeRoom = rooms.find((r) => r.id === activeRoomId);
 
-  const filteredRooms = rooms.filter(r =>
-    r.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    r.members?.some(m => m.fullName.toLowerCase().includes(searchFilter.toLowerCase()))
+  const filteredRooms = rooms.filter(
+    (r) =>
+      r.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+      r.members?.some((m) => m.fullName.toLowerCase().includes(searchFilter.toLowerCase())),
   );
 
   const handleSelectRoom = (roomId: number) => {
@@ -85,16 +123,22 @@ export function ChatPage() {
   return (
     <div className="flex h-[calc(100vh-48px)] -m-6 bg-bg-primary">
       {/* Left panel: Room list */}
-      <div className={`w-80 border-r border-border flex flex-col bg-bg-secondary shrink-0 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
+      <div
+        className={`w-80 border-r border-border flex flex-col bg-bg-secondary shrink-0 ${showMobileChat ? 'hidden md:flex' : 'flex'}`}
+      >
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-text-primary">Chat</h2>
               {isConnected ? (
-                <span title="Connected"><Wifi size={12} className="text-green-500" /></span>
+                <span title="Connected">
+                  <Wifi size={12} className="text-green-500" />
+                </span>
               ) : (
-                <span title="Reconnecting..."><WifiOff size={12} className="text-red-400 animate-pulse" /></span>
+                <span title="Reconnecting...">
+                  <WifiOff size={12} className="text-red-400 animate-pulse" />
+                </span>
               )}
             </div>
             <button
@@ -106,10 +150,13 @@ export function ChatPage() {
             </button>
           </div>
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            />
             <input
               value={searchFilter}
-              onChange={e => setSearchFilter(e.target.value)}
+              onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Søk i samtaler..."
               className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
             />
@@ -124,7 +171,7 @@ export function ChatPage() {
               Ingen samtaler ennå
             </div>
           ) : (
-            filteredRooms.map(room => (
+            filteredRooms.map((room) => (
               <RoomItem
                 key={room.id}
                 room={room}
@@ -132,13 +179,19 @@ export function ChatPage() {
                 currentUserId={user.id}
                 onlineUsers={onlineUsers}
                 onClick={() => handleSelectRoom(room.id)}
-                onHide={!room.isGroup ? async () => {
-                  try {
-                    await hideChatRoom(room.id);
-                    if (activeRoomId === room.id) setActiveRoomId(null);
-                    queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-                  } catch { toast.error('Kunne ikke skjule samtale'); }
-                } : undefined}
+                onHide={
+                  !room.isGroup
+                    ? async () => {
+                        try {
+                          await hideChatRoom(room.id);
+                          if (activeRoomId === room.id) setActiveRoomId(null);
+                          queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+                        } catch {
+                          toast.error('Kunne ikke skjule samtale');
+                        }
+                      }
+                    : undefined
+                }
               />
             ))
           )}
@@ -182,14 +235,26 @@ export function ChatPage() {
 }
 
 // ─── Room Item ───
-function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide }: {
-  room: ChatRoom; isActive: boolean; currentUserId: number; onlineUsers: Set<number>; onClick: () => void; onHide?: () => void;
+function RoomItem({
+  room,
+  isActive,
+  currentUserId,
+  onlineUsers,
+  onClick,
+  onHide,
+}: {
+  room: ChatRoom;
+  isActive: boolean;
+  currentUserId: number;
+  onlineUsers: Set<number>;
+  onClick: () => void;
+  onHide?: () => void;
 }) {
-  const otherMember = !room.isGroup
-    ? room.members.find(m => m.userId !== currentUserId)
-    : null;
+  const otherMember = !room.isGroup ? room.members.find((m) => m.userId !== currentUserId) : null;
 
-  const isOtherOnline = otherMember ? onlineUsers.has(otherMember.userId) || otherMember.online : false;
+  const isOtherOnline = otherMember
+    ? onlineUsers.has(otherMember.userId) || otherMember.online
+    : false;
 
   const formatTime = (dateStr: string) => {
     const d = new Date(toUtc(dateStr));
@@ -210,8 +275,10 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
           ${isActive ? 'bg-accent/10 border-l-2 border-l-accent' : 'hover:bg-bg-hover/50'}`}
       >
         <div className="relative shrink-0">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white
-            ${room.isGroup ? 'bg-purple-500/80' : 'bg-accent/80'}`}>
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white
+            ${room.isGroup ? 'bg-purple-500/80' : 'bg-accent/80'}`}
+          >
             {room.isGroup ? <Users size={18} /> : (room.name?.charAt(0) || '?').toUpperCase()}
           </div>
           {!room.isGroup && isOtherOnline && (
@@ -221,21 +288,32 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <span className={`text-sm truncate ${room.unreadCount > 0 ? 'font-bold text-text-primary' : 'font-medium text-text-primary'}`}>
+            <span
+              className={`text-sm truncate ${room.unreadCount > 0 ? 'font-bold text-text-primary' : 'font-medium text-text-primary'}`}
+            >
               {room.name}
             </span>
             {room.lastMessage && (
-              <span className="text-[10px] text-text-muted shrink-0 ml-2">{formatTime(room.lastMessage.sentAt)}</span>
+              <span className="text-[10px] text-text-muted shrink-0 ml-2">
+                {formatTime(room.lastMessage.sentAt)}
+              </span>
             )}
           </div>
           <div className="flex items-center justify-between mt-0.5">
-            <p className={`text-xs truncate ${room.unreadCount > 0 ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
+            <p
+              className={`text-xs truncate ${room.unreadCount > 0 ? 'text-text-primary font-medium' : 'text-text-muted'}`}
+            >
               {room.lastMessage
                 ? (() => {
-                    const prefix = room.lastMessage.senderId === currentUserId
-                      ? 'Deg: '
-                      : room.isGroup ? `${room.lastMessage.senderName.split(' ')[0]}: ` : '';
-                    const text = room.lastMessage.deleted ? 'Melding slettet' : room.lastMessage.content;
+                    const prefix =
+                      room.lastMessage.senderId === currentUserId
+                        ? 'Deg: '
+                        : room.isGroup
+                          ? `${room.lastMessage.senderName.split(' ')[0]}: `
+                          : '';
+                    const text = room.lastMessage.deleted
+                      ? 'Melding slettet'
+                      : room.lastMessage.content;
                     return prefix + text;
                   })()
                 : 'Ingen meldinger ennå'}
@@ -252,7 +330,10 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
       {/* Hide button for direct chats only */}
       {!room.isGroup && onHide && (
         <button
-          onClick={(e) => { e.stopPropagation(); onHide(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onHide();
+          }}
           className="absolute top-1.5 right-1.5 p-1 rounded-full bg-bg-secondary/80 text-text-muted hover:text-danger hover:bg-bg-hover opacity-0 group-hover:opacity-100 transition-all z-10"
           title="Skjul samtale"
         >
@@ -264,8 +345,17 @@ function RoomItem({ room, isActive, currentUserId, onlineUsers, onClick, onHide 
 }
 
 // ─── Conversation View ───
-function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserIds, onlineUsers }: {
-  room: ChatRoom; currentUserId: number; onBack: () => void;
+function ConversationView({
+  room,
+  currentUserId,
+  onBack,
+  sendTyping,
+  typingUserIds,
+  onlineUsers,
+}: {
+  room: ChatRoom;
+  currentUserId: number;
+  onBack: () => void;
   sendTyping: (roomId: number, isTyping: boolean) => void;
   typingUserIds: number[];
   onlineUsers: Set<number>;
@@ -307,16 +397,16 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
     }
   }, [messages.length]);
 
-  const otherMember = !room.isGroup
-    ? room.members.find(m => m.userId !== currentUserId)
-    : null;
+  const otherMember = !room.isGroup ? room.members.find((m) => m.userId !== currentUserId) : null;
 
-  const isOtherOnline = otherMember ? onlineUsers.has(otherMember.userId) || otherMember.online : false;
-  const onlineCount = room.members.filter(m => onlineUsers.has(m.userId) || m.online).length;
+  const isOtherOnline = otherMember
+    ? onlineUsers.has(otherMember.userId) || otherMember.online
+    : false;
+  const onlineCount = room.members.filter((m) => onlineUsers.has(m.userId) || m.online).length;
 
   // Typing users display
   const typingNames = typingUserIds
-    .map(id => room.members.find(m => m.userId === id)?.fullName?.split(' ')[0])
+    .map((id) => room.members.find((m) => m.userId === id)?.fullName?.split(' ')[0])
     .filter(Boolean);
 
   // Edit mutation
@@ -343,7 +433,8 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
 
   // Reaction mutation with optimistic update
   const reactMut = useMutation({
-    mutationFn: ({ msgId, emoji }: { msgId: number; emoji: string }) => toggleReaction(msgId, emoji),
+    mutationFn: ({ msgId, emoji }: { msgId: number; emoji: string }) =>
+      toggleReaction(msgId, emoji),
     onMutate: async ({ msgId, emoji }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['chatMessages', room.id] });
@@ -354,11 +445,11 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
       // Optimistically update the cache
       queryClient.setQueryData<ChatMessage[]>(['chatMessages', room.id], (old) => {
         if (!old) return old;
-        return old.map(msg => {
+        return old.map((msg) => {
           if (msg.id !== msgId) return msg;
 
           const reactions = [...(msg.reactions || [])];
-          const existingIdx = reactions.findIndex(r => r.emoji === emoji);
+          const existingIdx = reactions.findIndex((r) => r.emoji === emoji);
 
           if (existingIdx >= 0) {
             const existing = reactions[existingIdx];
@@ -406,10 +497,14 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
     <>
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 bg-bg-secondary">
-        <button onClick={onBack} className="md:hidden p-1 text-text-muted"><ChevronLeft size={20} /></button>
+        <button onClick={onBack} className="md:hidden p-1 text-text-muted">
+          <ChevronLeft size={20} />
+        </button>
         <div className="relative">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white
-            ${room.isGroup ? 'bg-purple-500/80' : 'bg-accent/80'}`}>
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white
+            ${room.isGroup ? 'bg-purple-500/80' : 'bg-accent/80'}`}
+          >
             {room.isGroup ? <Users size={16} /> : (room.name?.charAt(0) || '?').toUpperCase()}
           </div>
           {!room.isGroup && isOtherOnline && (
@@ -421,7 +516,9 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
           <p className="text-[10px] text-text-muted">
             {room.isGroup
               ? `${room.members.length} medlemmer · ${onlineCount} pålogget`
-              : isOtherOnline ? '🟢 Pålogget' : '⚫ Frakoblet'}
+              : isOtherOnline
+                ? '🟢 Pålogget'
+                : '⚫ Frakoblet'}
           </p>
         </div>
         {/* Members panel toggle */}
@@ -438,77 +535,95 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
       <div className="flex flex-1 overflow-hidden">
         {/* Messages column */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-1">
+            {messages.map((msg, i) => {
+              const isMine = msg.senderId === currentUserId;
+              const showAvatar = i === 0 || messages[i - 1].senderId !== msg.senderId;
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {messages.map((msg, i) => {
-          const isMine = msg.senderId === currentUserId;
-          const showAvatar = i === 0 || messages[i - 1].senderId !== msg.senderId;
+              return (
+                <MessageBubble
+                  key={msg.id}
+                  msg={msg}
+                  isMine={isMine}
+                  showAvatar={showAvatar}
+                  isGroup={room.isGroup}
+                  onReply={() => setReplyTo(msg)}
+                  onEdit={() => {
+                    setEditingMsg(msg);
+                    setEditContent(msg.content);
+                  }}
+                  onDelete={() => deleteMut.mutate(msg.id)}
+                  onReact={(emoji) => reactMut.mutate({ msgId: msg.id, emoji })}
+                />
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
 
-          return (
-            <MessageBubble
-              key={msg.id}
-              msg={msg}
-              isMine={isMine}
-              showAvatar={showAvatar}
-              isGroup={room.isGroup}
-              onReply={() => setReplyTo(msg)}
-              onEdit={() => { setEditingMsg(msg); setEditContent(msg.content); }}
-              onDelete={() => deleteMut.mutate(msg.id)}
-              onReact={(emoji) => reactMut.mutate({ msgId: msg.id, emoji })}
+          {/* Typing indicator */}
+          {typingNames.length > 0 && (
+            <div className="px-4 py-1.5 text-xs text-text-muted animate-pulse">
+              ✏️ {typingNames.join(', ')} skriver...
+            </div>
+          )}
+
+          {/* Edit bar */}
+          {editingMsg && (
+            <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 flex items-center gap-2">
+              <Edit3 size={14} className="text-amber-400" />
+              <span className="text-xs text-amber-400 shrink-0">Redigerer</span>
+              <input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="flex-1 px-2 py-1 bg-bg-input border border-border rounded text-sm text-text-primary"
+                onKeyDown={(e) => e.key === 'Enter' && editMut.mutate()}
+              />
+              <button
+                onClick={() => editMut.mutate()}
+                className="p-1 text-green-400 hover:text-green-300"
+              >
+                <Check size={16} />
+              </button>
+              <button
+                onClick={() => setEditingMsg(null)}
+                className="p-1 text-text-muted hover:text-text-primary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Reply bar */}
+          {replyTo && !editingMsg && (
+            <div className="px-4 py-2 bg-accent/5 border-t border-accent/20 flex items-center gap-2">
+              <Reply size={14} className="text-accent" />
+              <span className="text-xs text-accent flex-1 truncate">
+                Svarer på {replyTo.senderName}:{' '}
+                {replyTo.deleted ? 'Melding slettet' : replyTo.content}
+              </span>
+              <button
+                onClick={() => setReplyTo(null)}
+                className="p-1 text-text-muted hover:text-text-primary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Input bar */}
+          {!editingMsg && (
+            <ChatInput
+              roomId={room.id}
+              replyToId={replyTo?.id}
+              onSent={() => {
+                setReplyTo(null);
+                queryClient.invalidateQueries({ queryKey: ['chatMessages', room.id] });
+                queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+              }}
+              sendTyping={sendTyping}
             />
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Typing indicator */}
-      {typingNames.length > 0 && (
-        <div className="px-4 py-1.5 text-xs text-text-muted animate-pulse">
-          ✏️ {typingNames.join(', ')} skriver...
-        </div>
-      )}
-
-      {/* Edit bar */}
-      {editingMsg && (
-        <div className="px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 flex items-center gap-2">
-          <Edit3 size={14} className="text-amber-400" />
-          <span className="text-xs text-amber-400 shrink-0">Redigerer</span>
-          <input
-            value={editContent}
-            onChange={e => setEditContent(e.target.value)}
-            className="flex-1 px-2 py-1 bg-bg-input border border-border rounded text-sm text-text-primary"
-            onKeyDown={e => e.key === 'Enter' && editMut.mutate()}
-          />
-          <button onClick={() => editMut.mutate()} className="p-1 text-green-400 hover:text-green-300"><Check size={16} /></button>
-          <button onClick={() => setEditingMsg(null)} className="p-1 text-text-muted hover:text-text-primary"><X size={16} /></button>
-        </div>
-      )}
-
-      {/* Reply bar */}
-      {replyTo && !editingMsg && (
-        <div className="px-4 py-2 bg-accent/5 border-t border-accent/20 flex items-center gap-2">
-          <Reply size={14} className="text-accent" />
-          <span className="text-xs text-accent flex-1 truncate">
-            Svarer på {replyTo.senderName}: {replyTo.deleted ? 'Melding slettet' : replyTo.content}
-          </span>
-          <button onClick={() => setReplyTo(null)} className="p-1 text-text-muted hover:text-text-primary"><X size={16} /></button>
-        </div>
-      )}
-
-      {/* Input bar */}
-      {!editingMsg && (
-        <ChatInput
-          roomId={room.id}
-          replyToId={replyTo?.id}
-          onSent={() => {
-            setReplyTo(null);
-            queryClient.invalidateQueries({ queryKey: ['chatMessages', room.id] });
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-          }}
-          sendTyping={sendTyping}
-        />
-      )}
+          )}
         </div>
 
         {/* Members panel — right sidebar */}
@@ -521,9 +636,13 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
 
               {/* Add member button (owner only, groups only) */}
               {room.isGroup && room.createdById === currentUserId && (
-                <AddMemberButton roomId={room.id} existingMemberIds={room.members.map(m => m.userId)} onAdded={() => {
-                  queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-                }} />
+                <AddMemberButton
+                  roomId={room.id}
+                  existingMemberIds={room.members.map((m) => m.userId)}
+                  onAdded={() => {
+                    queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+                  }}
+                />
               )}
 
               <div className="space-y-1">
@@ -538,24 +657,36 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
                     if (!aOnline && bOnline) return 1;
                     return a.fullName.localeCompare(b.fullName);
                   })
-                  .map(member => {
+                  .map((member) => {
                     const isOnline = onlineUsers.has(member.userId) || member.online;
                     const color = nameToColor(member.fullName);
                     const initials = getInitials(member.fullName);
                     const isOwner = member.userId === room.createdById;
-                    const canRemove = room.isGroup && room.createdById === currentUserId && !isOwner;
+                    const canRemove =
+                      room.isGroup && room.createdById === currentUserId && !isOwner;
                     return (
-                      <div key={member.userId} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-bg-hover/50 transition-colors group">
+                      <div
+                        key={member.userId}
+                        className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-bg-hover/50 transition-colors group"
+                      >
                         <div className="relative shrink-0">
-                          <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-white text-[11px] font-semibold`}>
+                          <div
+                            className={`w-8 h-8 rounded-full ${color} flex items-center justify-center text-white text-[11px] font-semibold`}
+                          >
                             {initials}
                           </div>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg-secondary ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-bg-secondary ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-text-primary truncate flex items-center gap-1">
                             {member.fullName}
-                            {isOwner && <span className="text-[9px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-semibold">Eier</span>}
+                            {isOwner && (
+                              <span className="text-[9px] bg-accent/20 text-accent px-1.5 py-0.5 rounded-full font-semibold">
+                                Eier
+                              </span>
+                            )}
                           </p>
                           <p className="text-[10px] text-text-muted truncate">
                             {member.role.replace('_', ' ')} · {member.institutionName}
@@ -569,7 +700,9 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
                                 await removeChatMember(room.id, member.userId);
                                 queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                                 toast.success(`${member.fullName} removed`);
-                              } catch { toast.error('Kunne ikke fjerne medlem'); }
+                              } catch {
+                                toast.error('Kunne ikke fjerne medlem');
+                              }
                             }}
                             className="p-1 text-text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Fjern medlem"
@@ -586,13 +719,20 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
               {room.isGroup && room.createdById === currentUserId && (
                 <button
                   onClick={async () => {
-                    if (!confirm(`Slette gruppen "${room.name}"? Dette fjerner alle meldinger og medlemmer permanent.`)) return;
+                    if (
+                      !confirm(
+                        `Slette gruppen "${room.name}"? Dette fjerner alle meldinger og medlemmer permanent.`,
+                      )
+                    )
+                      return;
                     try {
                       await deleteGroupChat(room.id);
                       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                       onBack();
                       toast.success('Gruppe slettet');
-                    } catch { toast.error('Kunne ikke slette gruppe'); }
+                    } catch {
+                      toast.error('Kunne ikke slette gruppe');
+                    }
                   }}
                   className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm font-medium hover:bg-danger/20 transition-colors"
                 >
@@ -611,7 +751,9 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
                       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
                       onBack();
                       toast.success('Du forlot gruppen');
-                    } catch { toast.error('Kunne ikke forlate gruppe'); }
+                    } catch {
+                      toast.error('Kunne ikke forlate gruppe');
+                    }
                   }}
                   className="w-full mt-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-bg-hover border border-border text-text-muted text-sm font-medium hover:text-danger hover:border-danger/30 transition-colors"
                 >
@@ -628,8 +770,14 @@ function ConversationView({ room, currentUserId, onBack, sendTyping, typingUserI
 }
 
 // ─── Add Member Button ───
-function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
-  roomId: number; existingMemberIds: number[]; onAdded: () => void;
+function AddMemberButton({
+  roomId,
+  existingMemberIds,
+  onAdded,
+}: {
+  roomId: number;
+  existingMemberIds: number[];
+  onAdded: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -639,9 +787,9 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
     enabled: open,
   });
 
-  const available = contacts.filter(c =>
-    !existingMemberIds.includes(c.id) &&
-    c.fullName.toLowerCase().includes(search.toLowerCase())
+  const available = contacts.filter(
+    (c) =>
+      !existingMemberIds.includes(c.id) && c.fullName.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -659,16 +807,18 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Søk i kontakter..."
             className="w-full px-2 py-1.5 text-xs bg-bg-primary border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent mb-2"
             autoFocus
           />
           <div className="max-h-40 overflow-y-auto space-y-0.5">
             {available.length === 0 && (
-              <p className="text-[10px] text-text-muted text-center py-2">Ingen kontakter tilgjengelig</p>
+              <p className="text-[10px] text-text-muted text-center py-2">
+                Ingen kontakter tilgjengelig
+              </p>
             )}
-            {available.map(c => (
+            {available.map((c) => (
               <button
                 key={c.id}
                 onClick={async () => {
@@ -677,11 +827,15 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
                     onAdded();
                     toast.success(`${c.fullName} lagt til i gruppen`);
                     setSearch('');
-                  } catch { toast.error('Kunne ikke legge til medlem'); }
+                  } catch {
+                    toast.error('Kunne ikke legge til medlem');
+                  }
                 }}
                 className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-bg-hover transition-colors text-left"
               >
-                <div className={`w-6 h-6 rounded-full ${nameToColor(c.fullName)} flex items-center justify-center text-white text-[9px] font-semibold shrink-0`}>
+                <div
+                  className={`w-6 h-6 rounded-full ${nameToColor(c.fullName)} flex items-center justify-center text-white text-[9px] font-semibold shrink-0`}
+                >
                   {getInitials(c.fullName)}
                 </div>
                 <div className="min-w-0">
@@ -699,16 +853,33 @@ function AddMemberButton({ roomId, existingMemberIds, onAdded }: {
 
 // ─── Message Bubble ───
 
-function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDelete, onReact }: {
-  msg: ChatMessage; isMine: boolean; showAvatar: boolean; isGroup: boolean;
-  onReply: () => void; onEdit: () => void; onDelete: () => void; onReact: (emoji: string) => void;
+function MessageBubble({
+  msg,
+  isMine,
+  showAvatar,
+  isGroup,
+  onReply,
+  onEdit,
+  onDelete,
+  onReact,
+}: {
+  msg: ChatMessage;
+  isMine: boolean;
+  showAvatar: boolean;
+  isGroup: boolean;
+  onReply: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onReact: (emoji: string) => void;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
 
   if (msg.deleted) {
     return (
-      <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-3' : 'mt-0.5'}`}>
+      <div
+        className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-3' : 'mt-0.5'}`}
+      >
         {/* Avatar spacer for deleted messages */}
         {!isMine && <div className="w-8 shrink-0" />}
         <div className="px-3 py-2 rounded-xl bg-bg-hover/30 border border-border/20 italic text-xs text-text-muted">
@@ -718,23 +889,27 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
     );
   }
 
-  const formatTime = (d: string) => new Date(toUtc(d)).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (d: string) =>
+    new Date(toUtc(d)).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
   const avatarColor = nameToColor(msg.senderName);
   const initials = getInitials(msg.senderName);
 
   return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-3' : 'mt-0.5'}`}>
+    <div
+      className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${showAvatar ? 'mt-3' : 'mt-0.5'}`}
+    >
       {/* Avatar for received messages */}
-      {!isMine && (
-        showAvatar ? (
-          <div className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-auto mb-1 mr-2`}
-               title={msg.senderName}>
+      {!isMine &&
+        (showAvatar ? (
+          <div
+            className={`w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-auto mb-1 mr-2`}
+            title={msg.senderName}
+          >
             {initials}
           </div>
         ) : (
           <div className="w-8 shrink-0 mr-2" /> /* spacer to align with avatar above */
-        )
-      )}
+        ))}
 
       <div className={`max-w-[75%] ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
         {/* Sender name */}
@@ -744,8 +919,11 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
 
         {/* Reply preview */}
         {msg.replyTo && (
-          <div className={`text-[10px] px-2 py-1 rounded-t-lg border-l-2 border-accent bg-accent/5 text-text-muted mb-0.5 ${isMine ? 'ml-auto' : ''}`}>
-            <span className="font-medium text-accent">{msg.replyTo.senderName}</span>: {msg.replyTo.content}
+          <div
+            className={`text-[10px] px-2 py-1 rounded-t-lg border-l-2 border-accent bg-accent/5 text-text-muted mb-0.5 ${isMine ? 'ml-auto' : ''}`}
+          >
+            <span className="font-medium text-accent">{msg.replyTo.senderName}</span>:{' '}
+            {msg.replyTo.content}
           </div>
         )}
 
@@ -753,21 +931,51 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
         <div
           className="relative flex items-center gap-1"
           onMouseEnter={() => setShowActions(true)}
-          onMouseLeave={() => { setShowActions(false); setShowEmojis(false); }}
+          onMouseLeave={() => {
+            setShowActions(false);
+            setShowEmojis(false);
+          }}
         >
           {/* Toolbar — LEFT side for own messages */}
           {isMine && showActions && (
             <div className="relative shrink-0">
               <div className="flex items-center gap-0.5 bg-bg-card border border-border rounded-lg shadow-lg p-0.5">
-                <button onClick={onDelete} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Trash2 size={14} className="text-danger" /></button>
-                <button onClick={onEdit} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Edit3 size={14} className="text-text-muted" /></button>
-                <button onClick={onReply} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Reply size={14} className="text-text-muted" /></button>
-                <button onClick={() => setShowEmojis(!showEmojis)} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Smile size={14} className="text-text-muted" /></button>
+                <button
+                  onClick={onDelete}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Trash2 size={14} className="text-danger" />
+                </button>
+                <button
+                  onClick={onEdit}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Edit3 size={14} className="text-text-muted" />
+                </button>
+                <button
+                  onClick={onReply}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Reply size={14} className="text-text-muted" />
+                </button>
+                <button
+                  onClick={() => setShowEmojis(!showEmojis)}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Smile size={14} className="text-text-muted" />
+                </button>
               </div>
               {showEmojis && (
                 <div className="absolute bottom-full right-0 flex gap-1 bg-bg-card border border-border rounded-lg shadow-lg p-2 z-30">
-                  {EMOJIS.map(e => (
-                    <button key={e} onClick={() => { onReact(e); setShowEmojis(false); }} className="text-lg hover:scale-125 transition-transform p-0.5 hover:bg-bg-hover rounded">
+                  {EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => {
+                        onReact(e);
+                        setShowEmojis(false);
+                      }}
+                      className="text-lg hover:scale-125 transition-transform p-0.5 hover:bg-bg-hover rounded"
+                    >
                       {e}
                     </button>
                   ))}
@@ -779,20 +987,30 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
           {/* Bubble + reactions column */}
           <div className="flex flex-col min-w-0">
             {/* Message bubble */}
-            <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words
-              ${isMine
-                ? 'bg-accent text-white rounded-br-md'
-                : 'bg-bg-card border border-border/50 text-text-primary rounded-bl-md'
-              }`}>
+            <div
+              className={`px-3 py-2 rounded-2xl text-sm leading-relaxed break-words
+              ${
+                isMine
+                  ? 'bg-accent text-white rounded-br-md'
+                  : 'bg-bg-card border border-border/50 text-text-primary rounded-bl-md'
+              }`}
+            >
               {msg.content}
 
               {msg.attachments?.length > 0 && (
                 <div className="mt-2 space-y-2">
-                  {msg.attachments.map(att => {
-                    const isImage = att.isImage || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(att.fileName);
+                  {msg.attachments.map((att) => {
+                    const isImage =
+                      att.isImage || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(att.fileName);
                     if (isImage) {
                       return (
-                        <a key={att.id} href={getFileUrl(att.id)} target="_blank" rel="noopener noreferrer" className="block">
+                        <a
+                          key={att.id}
+                          href={getFileUrl(att.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
                           <img
                             src={getFileUrl(att.id)}
                             alt={att.fileName}
@@ -820,27 +1038,35 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
                 </div>
               )}
 
-              <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}
+              >
                 <span className={`text-[9px] ${isMine ? 'text-white/50' : 'text-text-muted'}`}>
                   {formatTime(msg.sentAt)}
                 </span>
                 {msg.editedAt && (
-                  <span className={`text-[9px] ${isMine ? 'text-white/40' : 'text-text-muted/60'}`}>(edited)</span>
+                  <span className={`text-[9px] ${isMine ? 'text-white/40' : 'text-text-muted/60'}`}>
+                    (edited)
+                  </span>
                 )}
               </div>
             </div>
 
             {/* Reactions */}
             {msg.reactions?.length > 0 && (
-              <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                {msg.reactions.map(r => (
+              <div
+                className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.reactions.map((r) => (
                   <button
                     key={r.emoji}
                     onClick={() => onReact(r.emoji)}
                     className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors
-                      ${r.currentUserReacted
-                        ? 'bg-accent/10 border-accent/30 text-accent'
-                        : 'bg-bg-hover/50 border-border/30 text-text-muted hover:border-accent/20'}`}
+                      ${
+                        r.currentUserReacted
+                          ? 'bg-accent/10 border-accent/30 text-accent'
+                          : 'bg-bg-hover/50 border-border/30 text-text-muted hover:border-accent/20'
+                      }`}
                     title={r.usernames.join(', ')}
                   >
                     <span>{r.emoji}</span>
@@ -855,13 +1081,30 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
           {!isMine && showActions && (
             <div className="relative shrink-0">
               <div className="flex items-center gap-0.5 bg-bg-card border border-border rounded-lg shadow-lg p-0.5">
-                <button onClick={() => setShowEmojis(!showEmojis)} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Smile size={14} className="text-text-muted" /></button>
-                <button onClick={onReply} className="p-1.5 hover:bg-bg-hover rounded transition-colors"><Reply size={14} className="text-text-muted" /></button>
+                <button
+                  onClick={() => setShowEmojis(!showEmojis)}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Smile size={14} className="text-text-muted" />
+                </button>
+                <button
+                  onClick={onReply}
+                  className="p-1.5 hover:bg-bg-hover rounded transition-colors"
+                >
+                  <Reply size={14} className="text-text-muted" />
+                </button>
               </div>
               {showEmojis && (
                 <div className="absolute bottom-full left-0 flex gap-1 bg-bg-card border border-border rounded-lg shadow-lg p-2 z-30">
-                  {EMOJIS.map(e => (
-                    <button key={e} onClick={() => { onReact(e); setShowEmojis(false); }} className="text-lg hover:scale-125 transition-transform p-0.5 hover:bg-bg-hover rounded">
+                  {EMOJIS.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => {
+                        onReact(e);
+                        setShowEmojis(false);
+                      }}
+                      className="text-lg hover:scale-125 transition-transform p-0.5 hover:bg-bg-hover rounded"
+                    >
                       {e}
                     </button>
                   ))}
@@ -876,8 +1119,15 @@ function MessageBubble({ msg, isMine, showAvatar, isGroup, onReply, onEdit, onDe
 }
 
 // ─── Chat Input ───
-function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
-  roomId: number; replyToId?: number; onSent: () => void;
+function ChatInput({
+  roomId,
+  replyToId,
+  onSent,
+  sendTyping,
+}: {
+  roomId: number;
+  replyToId?: number;
+  onSent: () => void;
   sendTyping: (roomId: number, isTyping: boolean) => void;
 }) {
   const [text, setText] = useState('');
@@ -921,14 +1171,11 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
 
       // Send and immediately add to cache from response
       const sentMsg = await sendChatMessage(roomId, req);
-      queryClient.setQueryData<ChatMessage[]>(
-        ['chatMessages', roomId],
-        (old) => {
-          if (!old) return [sentMsg];
-          if (old.some(m => m.id === sentMsg.id)) return old;
-          return [...old, sentMsg];
-        }
-      );
+      queryClient.setQueryData<ChatMessage[]>(['chatMessages', roomId], (old) => {
+        if (!old) return [sentMsg];
+        if (old.some((m) => m.id === sentMsg.id)) return old;
+        return [...old, sentMsg];
+      });
 
       setText('');
       setFiles([]);
@@ -948,7 +1195,7 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
   };
 
   const addEmoji = (emoji: string) => {
-    setText(prev => prev + emoji);
+    setText((prev) => prev + emoji);
     setShowEmojis(false);
     inputRef.current?.focus();
   };
@@ -958,17 +1205,29 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
           {files.map((f, i) => (
-            <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-bg-hover rounded-lg text-xs text-text-secondary">
+            <div
+              key={i}
+              className="flex items-center gap-1.5 px-2 py-1 bg-bg-hover rounded-lg text-xs text-text-secondary"
+            >
               {f.type.startsWith('image/') ? <ImageIcon size={12} /> : <FileText size={12} />}
               <span className="truncate max-w-[120px]">{f.name}</span>
-              <button onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-text-muted hover:text-danger"><X size={12} /></button>
+              <button
+                onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                className="text-text-muted hover:text-danger"
+              >
+                <X size={12} />
+              </button>
             </div>
           ))}
         </div>
       )}
 
       <div className="flex items-end gap-2 relative">
-        <button onClick={() => fileRef.current?.click()} className="p-2 text-text-muted hover:text-text-primary transition-colors" title="Attach file">
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="p-2 text-text-muted hover:text-text-primary transition-colors"
+          title="Attach file"
+        >
           <Paperclip size={18} />
         </button>
         <input
@@ -976,7 +1235,7 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
           type="file"
           multiple
           className="hidden"
-          onChange={e => {
+          onChange={(e) => {
             if (e.target.files) {
               const BLOCKED = ['.exe', '.bat', '.cmd', '.msi', '.scr'];
               const newFiles: File[] = [];
@@ -990,20 +1249,28 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
                   newFiles.push(file);
                 }
               }
-              if (newFiles.length > 0) setFiles(prev => [...prev, ...newFiles]);
+              if (newFiles.length > 0) setFiles((prev) => [...prev, ...newFiles]);
               e.target.value = '';
             }
           }}
         />
 
         <div className="relative">
-          <button onClick={() => setShowEmojis(!showEmojis)} className="p-2 text-text-muted hover:text-text-primary transition-colors" title="Emoji">
+          <button
+            onClick={() => setShowEmojis(!showEmojis)}
+            className="p-2 text-text-muted hover:text-text-primary transition-colors"
+            title="Emoji"
+          >
             <Smile size={18} />
           </button>
           {showEmojis && (
             <div className="absolute bottom-full mb-2 left-0 flex gap-1 bg-bg-card border border-border rounded-lg shadow-lg p-2 z-20">
-              {EMOJIS.map(e => (
-                <button key={e} onClick={() => addEmoji(e)} className="text-xl hover:scale-125 transition-transform p-1">
+              {EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  onClick={() => addEmoji(e)}
+                  className="text-xl hover:scale-125 transition-transform p-1"
+                >
                   {e}
                 </button>
               ))}
@@ -1014,7 +1281,10 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
         <textarea
           ref={inputRef}
           value={text}
-          onChange={e => { setText(e.target.value); handleTyping(); }}
+          onChange={(e) => {
+            setText(e.target.value);
+            handleTyping();
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={1}
@@ -1034,17 +1304,27 @@ function ChatInput({ roomId, replyToId, onSent, sendTyping }: {
 }
 
 // ─── New Chat Modal ───
-function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: (roomId: number) => void; }) {
+function NewChatModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (roomId: number) => void;
+}) {
   const [tab, setTab] = useState<'direct' | 'group'>('direct');
-  const { data: contacts = [] } = useQuery({ queryKey: ['chatContacts'], queryFn: getChatContacts });
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['chatContacts'],
+    queryFn: getChatContacts,
+  });
   const [search, setSearch] = useState('');
   const [groupName, setGroupName] = useState('');
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const filtered = contacts.filter(c =>
-    c.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    c.username.toLowerCase().includes(search.toLowerCase())
+  const filtered = contacts.filter(
+    (c) =>
+      c.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      c.username.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleDirect = async (userId: number) => {
@@ -1073,26 +1353,48 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   };
 
   const toggleSelect = (id: number) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const roleBadge = (role: string) => {
-    const colors: Record<string, string> = { SUPER_ADMIN: 'bg-badge-admin', INSTITUTION_ADMIN: 'bg-badge-admin', TEACHER: 'bg-badge-teacher', STUDENT: 'bg-badge-student' };
-    return <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white ${colors[role] || 'bg-bg-hover'}`}>{role.replace(/_/g, ' ')}</span>;
+    const colors: Record<string, string> = {
+      SUPER_ADMIN: 'bg-badge-admin',
+      INSTITUTION_ADMIN: 'bg-badge-admin',
+      TEACHER: 'bg-badge-teacher',
+      STUDENT: 'bg-badge-student',
+    };
+    return (
+      <span
+        className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold text-white ${colors[role] || 'bg-bg-hover'}`}
+      >
+        {role.replace(/_/g, ' ')}
+      </span>
+    );
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-5 w-full max-w-md shadow-2xl max-h-[80vh] flex flex-col">
-        <button onClick={onClose} className="absolute top-3 right-3 text-text-muted hover:text-text-primary"><X size={18} /></button>
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-text-muted hover:text-text-primary"
+        >
+          <X size={18} />
+        </button>
         <h2 className="text-lg font-semibold text-text-primary mb-3">Ny samtale</h2>
 
         <div className="flex gap-1 mb-3 bg-bg-primary p-1 rounded-lg">
-          <button onClick={() => setTab('direct')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'direct' ? 'bg-accent text-white' : 'text-text-secondary'}`}>
+          <button
+            onClick={() => setTab('direct')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'direct' ? 'bg-accent text-white' : 'text-text-secondary'}`}
+          >
             Direktemelding
           </button>
-          <button onClick={() => setTab('group')} className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-accent text-white' : 'text-text-secondary'}`}>
+          <button
+            onClick={() => setTab('group')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${tab === 'group' ? 'bg-accent text-white' : 'text-text-secondary'}`}
+          >
             Gruppechat
           </button>
         </div>
@@ -1100,7 +1402,7 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         {tab === 'group' && (
           <input
             value={groupName}
-            onChange={e => setGroupName(e.target.value)}
+            onChange={(e) => setGroupName(e.target.value)}
             placeholder="Gruppenavn..."
             className="w-full px-3 py-2 mb-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
           />
@@ -1108,17 +1410,27 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
 
         <div className="relative mb-2">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Søk i kontakter..." className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Søk i kontakter..."
+            className="w-full pl-9 pr-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus"
+          />
         </div>
 
         {tab === 'group' && selectedIds.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {selectedIds.map(id => {
-              const c = contacts.find(x => x.id === id);
+            {selectedIds.map((id) => {
+              const c = contacts.find((x) => x.id === id);
               return c ? (
-                <span key={id} className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent text-xs rounded-full">
+                <span
+                  key={id}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent text-xs rounded-full"
+                >
                   {c.fullName || c.username}
-                  <button onClick={() => toggleSelect(id)}><X size={10} /></button>
+                  <button onClick={() => toggleSelect(id)}>
+                    <X size={10} />
+                  </button>
                 </span>
               ) : null;
             })}
@@ -1126,10 +1438,10 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         )}
 
         <div className="flex-1 overflow-y-auto border border-border rounded-lg bg-bg-primary divide-y divide-border/30">
-          {filtered.map(c => (
+          {filtered.map((c) => (
             <button
               key={c.id}
-              onClick={() => tab === 'direct' ? handleDirect(c.id) : toggleSelect(c.id)}
+              onClick={() => (tab === 'direct' ? handleDirect(c.id) : toggleSelect(c.id))}
               className={`w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-bg-hover transition-colors
                 ${tab === 'group' && selectedIds.includes(c.id) ? 'bg-accent/5' : ''}`}
             >
@@ -1137,14 +1449,20 @@ function NewChatModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                 <div className="w-8 h-8 rounded-full bg-bg-hover flex items-center justify-center text-xs font-bold text-text-secondary">
                   {(c.fullName || c.username).charAt(0).toUpperCase()}
                 </div>
-                {c.online && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-bg-primary" />}
+                {c.online && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-bg-primary" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-text-primary truncate block">{c.fullName || c.username}</span>
+                <span className="text-sm font-medium text-text-primary truncate block">
+                  {c.fullName || c.username}
+                </span>
                 <span className="text-[10px] text-text-muted">{c.institutionName}</span>
               </div>
               {roleBadge(c.role)}
-              {tab === 'group' && selectedIds.includes(c.id) && <Check size={14} className="text-accent" />}
+              {tab === 'group' && selectedIds.includes(c.id) && (
+                <Check size={14} className="text-accent" />
+              )}
             </button>
           ))}
         </div>

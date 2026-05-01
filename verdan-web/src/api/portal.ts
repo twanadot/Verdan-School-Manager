@@ -81,13 +81,24 @@ export const getAnnouncements = async () => {
   return data.data;
 };
 
-export const createAnnouncement = async (req: { title: string; content: string; programId?: number; subjectCode?: string }) => {
+export const createAnnouncement = async (req: {
+  title: string;
+  content: string;
+  programId?: number;
+  subjectCode?: string;
+}) => {
   const { data } = await api.post<ApiResponse<PortalAnnouncement>>('/portal/announcements', req);
   return data.data;
 };
 
-export const updateAnnouncement = async (id: number, req: { title: string; content: string; programId?: number; subjectCode?: string }) => {
-  const { data } = await api.put<ApiResponse<PortalAnnouncement>>(`/portal/announcements/${id}`, req);
+export const updateAnnouncement = async (
+  id: number,
+  req: { title: string; content: string; programId?: number; subjectCode?: string },
+) => {
+  const { data } = await api.put<ApiResponse<PortalAnnouncement>>(
+    `/portal/announcements/${id}`,
+    req,
+  );
   return data.data;
 };
 
@@ -102,12 +113,17 @@ export const togglePinAnnouncement = async (id: number) => {
 // ── Comments ──
 
 export const getComments = async (announcementId: number) => {
-  const { data } = await api.get<ApiResponse<PortalComment[]>>(`/portal/announcements/${announcementId}/comments`);
+  const { data } = await api.get<ApiResponse<PortalComment[]>>(
+    `/portal/announcements/${announcementId}/comments`,
+  );
   return data.data;
 };
 
 export const addComment = async (announcementId: number, content: string) => {
-  const { data } = await api.post<ApiResponse<PortalComment>>(`/portal/announcements/${announcementId}/comments`, { content });
+  const { data } = await api.post<ApiResponse<PortalComment>>(
+    `/portal/announcements/${announcementId}/comments`,
+    { content },
+  );
   return data.data;
 };
 
@@ -122,12 +138,22 @@ export const getFolders = async () => {
   return data.data;
 };
 
-export const createFolder = async (req: { name: string; subjectCode: string; programId: number; assignment: boolean; description?: string; deadline?: string }) => {
+export const createFolder = async (req: {
+  name: string;
+  subjectCode: string;
+  programId: number;
+  assignment: boolean;
+  description?: string;
+  deadline?: string;
+}) => {
   const { data } = await api.post<ApiResponse<PortalFolder>>('/portal/folders', req);
   return data.data;
 };
 
-export const updateFolder = async (id: number, req: { name: string; description?: string; assignment: boolean; deadline?: string }) => {
+export const updateFolder = async (
+  id: number,
+  req: { name: string; description?: string; assignment: boolean; deadline?: string },
+) => {
   const { data } = await api.put<ApiResponse<PortalFolder>>(`/portal/folders/${id}`, req);
   return data.data;
 };
@@ -146,9 +172,13 @@ export const getFolderFiles = async (folderId: number) => {
 export const uploadPortalFile = async (folderId: number, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  const { data } = await api.post<ApiResponse<PortalFile>>(`/portal/folders/${folderId}/files`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const { data } = await api.post<ApiResponse<PortalFile>>(
+    `/portal/folders/${folderId}/files`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    },
+  );
   return data.data;
 };
 
@@ -169,21 +199,30 @@ export const getSubmissionFileUrl = (submissionId: number) => {
 // ── Submissions ──
 
 export const getSubmissions = async (folderId: number) => {
-  const { data } = await api.get<ApiResponse<PortalSubmission[]>>(`/portal/folders/${folderId}/submissions`);
+  const { data } = await api.get<ApiResponse<PortalSubmission[]>>(
+    `/portal/folders/${folderId}/submissions`,
+  );
   return data.data;
 };
 
 export const submitAssignment = async (folderId: number, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  const { data } = await api.post<ApiResponse<PortalSubmission>>(`/portal/folders/${folderId}/submissions`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const { data } = await api.post<ApiResponse<PortalSubmission>>(
+    `/portal/folders/${folderId}/submissions`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    },
+  );
   return data.data;
 };
 
 export const reviewSubmission = async (id: number, status: string, feedback?: string) => {
-  const { data } = await api.put<ApiResponse<PortalSubmission>>(`/portal/submissions/${id}/review`, { status, feedback });
+  const { data } = await api.put<ApiResponse<PortalSubmission>>(
+    `/portal/submissions/${id}/review`,
+    { status, feedback },
+  );
   return data.data;
 };
 

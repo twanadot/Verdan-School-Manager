@@ -1,5 +1,11 @@
 import api from './client';
-import type { ApiResponse, Subject, SubjectRequest, SubjectMembers, AssignMemberRequest } from '../types';
+import type {
+  ApiResponse,
+  Subject,
+  SubjectRequest,
+  SubjectMembers,
+  AssignMemberRequest,
+} from '../types';
 
 export const getSubjects = async () => {
   const { data } = await api.get<ApiResponse<Subject[]>>('/subjects');

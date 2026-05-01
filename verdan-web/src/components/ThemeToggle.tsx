@@ -24,7 +24,7 @@ export function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
     { value: 'system', label: 'System', icon: <Monitor size={14} /> },
   ] as const;
 
-  const activeOption = themes.find(t => t.value === theme) || themes[0];
+  const activeOption = themes.find((t) => t.value === theme) || themes[0];
 
   return (
     <div className={`relative ${collapsed ? 'flex justify-center' : ''}`} ref={dropdownRef}>
@@ -38,7 +38,9 @@ export function ThemeToggle({ collapsed }: { collapsed?: boolean }) {
       </button>
 
       {isOpen && (
-        <div className={`absolute bottom-full mb-1 z-50 min-w-[200px] bg-bg-card border border-border shadow-lg rounded-xl overflow-hidden py-1 ${collapsed ? 'left-4' : 'left-0'}`}>
+        <div
+          className={`absolute bottom-full mb-1 z-50 min-w-[200px] bg-bg-card border border-border shadow-lg rounded-xl overflow-hidden py-1 ${collapsed ? 'left-4' : 'left-0'}`}
+        >
           <div className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
             Utseende
           </div>

@@ -9,7 +9,13 @@ export function LoadingState({ message = 'Laster...' }: { message?: string }) {
   );
 }
 
-export function EmptyState({ title = 'Ingen data', message = 'Ingenting å vise ennå.' }: { title?: string; message?: string }) {
+export function EmptyState({
+  title = 'Ingen data',
+  message = 'Ingenting å vise ennå.',
+}: {
+  title?: string;
+  message?: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-text-secondary">
       <div className="w-16 h-16 bg-bg-hover rounded-full flex items-center justify-center mb-4">

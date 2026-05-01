@@ -1,25 +1,82 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUsers, createUser, updateUser, deleteUser, importStudents, batchDeleteUsers } from '../api/users';
-import type { ImportResult, CreatedStudent } from '../api/users';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  importStudents,
+  batchDeleteUsers,
+} from '../api/users';
+import type { ImportResult } from '../api/users';
 import { getInstitutions } from '../api/institutions';
 import { PageHeader } from '../components/PageHeader';
 import { LoadingState, EmptyState } from '../components/LoadingState';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { Plus, Pencil, Trash2, Search, X, ChevronDown, ChevronRight, Building2, School, BookOpen, Building, GraduationCap, MapPin, Users, Upload, Download, FileSpreadsheet, CheckCircle2, AlertTriangle, Undo2 } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Building2,
+  School,
+  BookOpen,
+  Building,
+  GraduationCap,
+  MapPin,
+  Users,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  Undo2,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import type { User, CreateUserRequest, Role, Institution, InstitutionLevel } from '../types';
+import type { User, CreateUserRequest, Institution, InstitutionLevel } from '../types';
 
-const LEVEL_CONFIG: Record<InstitutionLevel, { label: string; icon: React.ReactNode; color: string }> = {
-  GENERAL:      { label: 'Generell', icon: <Building2 size={20} />, color: 'text-slate-400 bg-slate-400/10' },
-  UNGDOMSSKOLE: { label: 'Ungdomsskole', icon: <School size={20} />, color: 'text-blue-400 bg-blue-400/10' },
-  VGS:          { label: 'Videregående skole', icon: <BookOpen size={20} />, color: 'text-emerald-400 bg-emerald-400/10' },
-  FAGSKOLE:     { label: 'Fagskole', icon: <Building size={20} />, color: 'text-amber-400 bg-amber-400/10' },
-  UNIVERSITET:  { label: 'Universitet og høyskole', icon: <GraduationCap size={20} />, color: 'text-purple-400 bg-purple-400/10' },
+const LEVEL_CONFIG: Record<
+  InstitutionLevel,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  GENERAL: {
+    label: 'Generell',
+    icon: <Building2 size={20} />,
+    color: 'text-slate-400 bg-slate-400/10',
+  },
+  UNGDOMSSKOLE: {
+    label: 'Ungdomsskole',
+    icon: <School size={20} />,
+    color: 'text-blue-400 bg-blue-400/10',
+  },
+  VGS: {
+    label: 'Videregående skole',
+    icon: <BookOpen size={20} />,
+    color: 'text-emerald-400 bg-emerald-400/10',
+  },
+  FAGSKOLE: {
+    label: 'Fagskole',
+    icon: <Building size={20} />,
+    color: 'text-amber-400 bg-amber-400/10',
+  },
+  UNIVERSITET: {
+    label: 'Universitet og høyskole',
+    icon: <GraduationCap size={20} />,
+    color: 'text-purple-400 bg-purple-400/10',
+  },
 };
 
-const LEVEL_ORDER: InstitutionLevel[] = ['GENERAL', 'UNGDOMSSKOLE', 'VGS', 'FAGSKOLE', 'UNIVERSITET'];
+const LEVEL_ORDER: InstitutionLevel[] = [
+  'GENERAL',
+  'UNGDOMSSKOLE',
+  'VGS',
+  'FAGSKOLE',
+  'UNIVERSITET',
+];
 
 export function UsersPage() {
   const { user: currentUser } = useAuth();
@@ -32,25 +89,44 @@ export function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [showImport, setShowImport] = useState(false);
 
-  const { data: users = [], isLoading } = useQuery({ queryKey: ['users', roleFilter], queryFn: () => getUsers(roleFilter || undefined) });
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['users', roleFilter],
+    queryFn: () => getUsers(roleFilter || undefined),
+  });
 
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['users'] }); toast.success('Bruker slettet'); setDeleteTarget(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Bruker slettet');
+      setDeleteTarget(null);
+    },
     onError: () => toast.error('Kunne ikke slette bruker'),
   });
 
-  const filtered = users.filter(u =>
-    u.username.toLowerCase().includes(search.toLowerCase()) ||
-    u.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-    u.lastName?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase()) ||
-    u.institutionName?.toLowerCase().includes(search.toLowerCase())
+  const filtered = users.filter(
+    (u) =>
+      u.username.toLowerCase().includes(search.toLowerCase()) ||
+      u.firstName?.toLowerCase().includes(search.toLowerCase()) ||
+      u.lastName?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.institutionName?.toLowerCase().includes(search.toLowerCase()),
   );
 
   const roleBadge = (role: string) => {
-    const colors: Record<string, string> = { SUPER_ADMIN: 'bg-badge-admin', INSTITUTION_ADMIN: 'bg-badge-admin', TEACHER: 'bg-badge-teacher', STUDENT: 'bg-badge-student' };
-    return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-white ${colors[role] || 'bg-bg-hover'}`}>{role.replace('_', ' ')}</span>;
+    const colors: Record<string, string> = {
+      SUPER_ADMIN: 'bg-badge-admin',
+      INSTITUTION_ADMIN: 'bg-badge-admin',
+      TEACHER: 'bg-badge-teacher',
+      STUDENT: 'bg-badge-student',
+    };
+    return (
+      <span
+        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold text-white ${colors[role] || 'bg-bg-hover'}`}
+      >
+        {role.replace('_', ' ')}
+      </span>
+    );
   };
 
   if (isLoading) return <LoadingState message="Laster brukere..." />;
@@ -62,16 +138,29 @@ export function UsersPage() {
         users={filtered}
         search={search}
         setSearch={setSearch}
-        onAddUser={() => { setEditingUser(null); setShowForm(true); }}
-        onEditUser={(u) => { setEditingUser(u); setShowForm(true); }}
+        onAddUser={() => {
+          setEditingUser(null);
+          setShowForm(true);
+        }}
+        onEditUser={(u) => {
+          setEditingUser(u);
+          setShowForm(true);
+        }}
         onDeleteUser={(u) => setDeleteTarget(u)}
         roleBadge={roleBadge}
         showForm={showForm}
         editingUser={editingUser}
         deleteTarget={deleteTarget}
         deleteMutation={deleteMutation}
-        onCloseForm={() => { setShowForm(false); setEditingUser(null); }}
-        onSaved={() => { setShowForm(false); setEditingUser(null); queryClient.invalidateQueries({ queryKey: ['users'] }); }}
+        onCloseForm={() => {
+          setShowForm(false);
+          setEditingUser(null);
+        }}
+        onSaved={() => {
+          setShowForm(false);
+          setEditingUser(null);
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+        }}
         onCancelDelete={() => setDeleteTarget(null)}
       />
     );
@@ -85,10 +174,19 @@ export function UsersPage() {
         description="Administrer brukere i din institusjon"
         action={
           <div className="flex gap-2">
-            <button onClick={() => setShowImport(true)} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
               <Upload size={16} /> Importer elever
             </button>
-            <button onClick={() => { setEditingUser(null); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors">
+            <button
+              onClick={() => {
+                setEditingUser(null);
+                setShowForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+            >
               <Plus size={16} /> Legg til bruker
             </button>
           </div>
@@ -139,21 +237,41 @@ export function UsersPage() {
             </thead>
             <tbody>
               {filtered.map((user) => (
-                <tr key={user.id} className="border-b border-border/50 hover:bg-bg-hover/50 transition-colors">
+                <tr
+                  key={user.id}
+                  className="border-b border-border/50 hover:bg-bg-hover/50 transition-colors"
+                >
                   <td className="px-4 py-3 font-medium text-text-primary">{user.username}</td>
-                  <td className="px-4 py-3 text-text-secondary">{user.firstName} {user.lastName}</td>
-                  <td className="px-4 py-3 text-text-secondary">{user.gender === 'MALE' ? 'Mann' : user.gender === 'FEMALE' ? 'Kvinne' : '—'}</td>
+                  <td className="px-4 py-3 text-text-secondary">
+                    {user.firstName} {user.lastName}
+                  </td>
+                  <td className="px-4 py-3 text-text-secondary">
+                    {user.gender === 'MALE' ? 'Mann' : user.gender === 'FEMALE' ? 'Kvinne' : '—'}
+                  </td>
                   <td className="px-4 py-3 text-text-secondary">{user.birthDate || '—'}</td>
                   <td className="px-4 py-3 text-text-secondary">{user.email || '—'}</td>
                   <td className="px-4 py-3 text-text-secondary">{user.phone || '—'}</td>
                   <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                  <td className="px-4 py-3 text-accent font-medium">{user.institutionName || 'Default'}</td>
+                  <td className="px-4 py-3 text-accent font-medium">
+                    {user.institutionName || 'Default'}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button onClick={() => { setEditingUser(user); setShowForm(true); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Rediger">
+                      <button
+                        onClick={() => {
+                          setEditingUser(user);
+                          setShowForm(true);
+                        }}
+                        className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
+                        title="Rediger"
+                      >
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => setDeleteTarget(user)} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Slett">
+                      <button
+                        onClick={() => setDeleteTarget(user)}
+                        className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"
+                        title="Slett"
+                      >
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -169,8 +287,15 @@ export function UsersPage() {
       {showForm && (
         <UserFormModal
           user={editingUser}
-          onClose={() => { setShowForm(false); setEditingUser(null); }}
-          onSaved={() => { setShowForm(false); setEditingUser(null); queryClient.invalidateQueries({ queryKey: ['users'] }); }}
+          onClose={() => {
+            setShowForm(false);
+            setEditingUser(null);
+          }}
+          onSaved={() => {
+            setShowForm(false);
+            setEditingUser(null);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+          }}
         />
       )}
 
@@ -178,7 +303,10 @@ export function UsersPage() {
       {showImport && (
         <ImportStudentsModal
           onClose={() => setShowImport(false)}
-          onDone={() => { setShowImport(false); queryClient.invalidateQueries({ queryKey: ['users'] }); }}
+          onDone={() => {
+            setShowImport(false);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+          }}
         />
       )}
 
@@ -196,18 +324,45 @@ export function UsersPage() {
 }
 
 // ─── SUPER ADMIN: Institutions grouped view with expandable admin lists ───
-function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, onDeleteUser, roleBadge, showForm, editingUser, deleteTarget, deleteMutation, onCloseForm, onSaved, onCancelDelete }: {
-  users: User[]; search: string; setSearch: (s: string) => void;
-  onAddUser: () => void; onEditUser: (u: User) => void; onDeleteUser: (u: User) => void;
+function SuperAdminUsersView({
+  users,
+  search,
+  setSearch,
+  onAddUser,
+  onEditUser,
+  onDeleteUser,
+  roleBadge,
+  showForm,
+  editingUser,
+  deleteTarget,
+  deleteMutation,
+  onCloseForm,
+  onSaved,
+  onCancelDelete,
+}: {
+  users: User[];
+  search: string;
+  setSearch: (s: string) => void;
+  onAddUser: () => void;
+  onEditUser: (u: User) => void;
+  onDeleteUser: (u: User) => void;
   roleBadge: (role: string) => React.ReactNode;
-  showForm: boolean; editingUser: User | null; deleteTarget: User | null;
-  deleteMutation: any; onCloseForm: () => void; onSaved: () => void; onCancelDelete: () => void;
+  showForm: boolean;
+  editingUser: User | null;
+  deleteTarget: User | null;
+  deleteMutation: any;
+  onCloseForm: () => void;
+  onSaved: () => void;
+  onCancelDelete: () => void;
 }) {
-  const { data: institutions = [], isLoading: instLoading } = useQuery({ queryKey: ['institutions'], queryFn: getInstitutions });
+  const { data: institutions = [], isLoading: instLoading } = useQuery({
+    queryKey: ['institutions'],
+    queryFn: getInstitutions,
+  });
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const toggle = (id: number) => {
-    setExpanded(prev => {
+    setExpanded((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -217,25 +372,26 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
   // Group institutions by level
   const grouped = useMemo(() => {
     const filtered = search.trim()
-      ? institutions.filter(i =>
-          i.name.toLowerCase().includes(search.toLowerCase()) ||
-          (i.location && i.location.toLowerCase().includes(search.toLowerCase()))
+      ? institutions.filter(
+          (i) =>
+            i.name.toLowerCase().includes(search.toLowerCase()) ||
+            (i.location && i.location.toLowerCase().includes(search.toLowerCase())),
         )
       : institutions;
 
     const groups: Record<string, Institution[]> = {};
     for (const level of LEVEL_ORDER) {
-      const items = filtered.filter(i => i.level === level);
+      const items = filtered.filter((i) => i.level === level);
       if (items.length > 0) groups[level] = items;
     }
-    const uncategorized = filtered.filter(i => !i.level || !LEVEL_ORDER.includes(i.level));
+    const uncategorized = filtered.filter((i) => !i.level || !LEVEL_ORDER.includes(i.level));
     if (uncategorized.length > 0) groups['UNCATEGORIZED'] = uncategorized;
     return groups;
   }, [institutions, search]);
 
   // Get admins for a specific institution
   const getAdminsForInstitution = (instId: number) =>
-    users.filter(u => u.institutionId === instId);
+    users.filter((u) => u.institutionId === instId);
 
   if (instLoading) return <LoadingState message="Laster institusjoner..." />;
 
@@ -245,7 +401,10 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
         title="Brukere"
         description="Administrer institusjonsadministratorer på tvers av alle institusjoner"
         action={
-          <button onClick={onAddUser} className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors">
+          <button
+            onClick={onAddUser}
+            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+          >
             <Plus size={16} /> Legg til bruker
           </button>
         }
@@ -257,7 +416,7 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Søk i institusjoner..."
             className="w-full pl-9 pr-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors"
           />
@@ -276,31 +435,40 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
               <div key={level}>
                 {/* Level header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`p-2 rounded-lg ${isUncategorized ? 'text-text-muted bg-bg-hover' : config.color}`}>
+                  <div
+                    className={`p-2 rounded-lg ${isUncategorized ? 'text-text-muted bg-bg-hover' : config.color}`}
+                  >
                     {isUncategorized ? <Building2 size={20} /> : config.icon}
                   </div>
                   <div>
                     <h2 className="text-base font-semibold text-text-primary">
                       {isUncategorized ? 'Ikke kategorisert' : config.label}
                     </h2>
-                    <p className="text-xs text-text-muted">{items.length} {items.length === 1 ? 'institusjon' : 'institusjoner'}</p>
+                    <p className="text-xs text-text-muted">
+                      {items.length} {items.length === 1 ? 'institusjon' : 'institusjoner'}
+                    </p>
                   </div>
                 </div>
 
                 {/* Institution cards with expandable admin lists */}
                 <div className="space-y-3 pl-2">
-                  {items.map(inst => {
+                  {items.map((inst) => {
                     const isOpen = expanded.has(inst.id);
                     const admins = getAdminsForInstitution(inst.id);
 
                     return (
-                      <div key={inst.id} className="bg-bg-secondary border border-border rounded-xl overflow-hidden hover:border-accent/30 transition-colors">
+                      <div
+                        key={inst.id}
+                        className="bg-bg-secondary border border-border rounded-xl overflow-hidden hover:border-accent/30 transition-colors"
+                      >
                         {/* Institution row — clickable */}
                         <button
                           onClick={() => toggle(inst.id)}
                           className="w-full flex items-center gap-3 p-4 text-left hover:bg-bg-hover/30 transition-colors"
                         >
-                          <div className={`p-2 rounded-lg shrink-0 ${isUncategorized ? 'text-text-muted bg-bg-hover' : config.color}`}>
+                          <div
+                            className={`p-2 rounded-lg shrink-0 ${isUncategorized ? 'text-text-muted bg-bg-hover' : config.color}`}
+                          >
                             <Building2 size={20} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -324,7 +492,9 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
                         {isOpen && (
                           <div className="border-t border-border bg-bg-primary/30">
                             {admins.length === 0 ? (
-                              <p className="px-4 py-3 text-sm text-text-muted italic">Ingen administratorer registrert for denne institusjonen</p>
+                              <p className="px-4 py-3 text-sm text-text-muted italic">
+                                Ingen administratorer registrert for denne institusjonen
+                              </p>
                             ) : (
                               <table className="w-full text-sm">
                                 <thead>
@@ -335,24 +505,57 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
                                     <th className="px-4 py-2 font-medium text-xs">E-post</th>
                                     <th className="px-4 py-2 font-medium text-xs">Telefon</th>
                                     <th className="px-4 py-2 font-medium text-xs">Rolle</th>
-                                    <th className="px-4 py-2 font-medium text-xs w-20">Handlinger</th>
+                                    <th className="px-4 py-2 font-medium text-xs w-20">
+                                      Handlinger
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {admins.map(admin => (
-                                    <tr key={admin.id} className="border-b border-border/30 hover:bg-bg-hover/50 transition-colors">
-                                      <td className="px-4 py-2.5 font-medium text-text-primary">{admin.username}</td>
-                                      <td className="px-4 py-2.5 text-text-secondary">{admin.firstName} {admin.lastName}</td>
-                                      <td className="px-4 py-2.5 text-text-secondary">{admin.gender === 'MALE' ? 'Mann' : admin.gender === 'FEMALE' ? 'Kvinne' : '—'}</td>
-                                      <td className="px-4 py-2.5 text-text-secondary">{admin.email || '—'}</td>
-                                      <td className="px-4 py-2.5 text-text-secondary">{admin.phone || '—'}</td>
+                                  {admins.map((admin) => (
+                                    <tr
+                                      key={admin.id}
+                                      className="border-b border-border/30 hover:bg-bg-hover/50 transition-colors"
+                                    >
+                                      <td className="px-4 py-2.5 font-medium text-text-primary">
+                                        {admin.username}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-text-secondary">
+                                        {admin.firstName} {admin.lastName}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-text-secondary">
+                                        {admin.gender === 'MALE'
+                                          ? 'Mann'
+                                          : admin.gender === 'FEMALE'
+                                            ? 'Kvinne'
+                                            : '—'}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-text-secondary">
+                                        {admin.email || '—'}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-text-secondary">
+                                        {admin.phone || '—'}
+                                      </td>
                                       <td className="px-4 py-2.5">{roleBadge(admin.role)}</td>
                                       <td className="px-4 py-2.5">
                                         <div className="flex gap-1">
-                                          <button onClick={(e) => { e.stopPropagation(); onEditUser(admin); }} className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors" title="Rediger">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onEditUser(admin);
+                                            }}
+                                            className="p-1.5 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
+                                            title="Rediger"
+                                          >
                                             <Pencil size={14} />
                                           </button>
-                                          <button onClick={(e) => { e.stopPropagation(); onDeleteUser(admin); }} className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors" title="Slett">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onDeleteUser(admin);
+                                            }}
+                                            className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"
+                                            title="Slett"
+                                          >
                                             <Trash2 size={14} />
                                           </button>
                                         </div>
@@ -375,13 +578,7 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
       )}
 
       {/* Form Modal */}
-      {showForm && (
-        <UserFormModal
-          user={editingUser}
-          onClose={onCloseForm}
-          onSaved={onSaved}
-        />
-      )}
+      {showForm && <UserFormModal user={editingUser} onClose={onCloseForm} onSaved={onSaved} />}
 
       {/* Delete confirmation */}
       <ConfirmDialog
@@ -397,9 +594,20 @@ function SuperAdminUsersView({ users, search, setSearch, onAddUser, onEditUser, 
 }
 
 // ─── User Form Modal ───
-function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose: () => void; onSaved: () => void }) {
+function UserFormModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: User | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { user: currentUser } = useAuth();
-  const { data: institutions = [] } = useQuery({ queryKey: ['institutions'], queryFn: () => import('../api/institutions').then(m => m.getInstitutions()) });
+  const { data: institutions = [] } = useQuery({
+    queryKey: ['institutions'],
+    queryFn: () => import('../api/institutions').then((m) => m.getInstitutions()),
+  });
   const isEditing = !!user;
   const [form, setForm] = useState<CreateUserRequest>({
     username: user?.username || '',
@@ -433,55 +641,106 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
       }
       onSaved();
     } catch (err: any) {
-      const msg = err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre';
+      const msg =
+        err.response?.data?.errors?.join('. ') || err.response?.data?.error || 'Kunne ikke lagre';
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const update = (field: string, value: string | number | undefined) => setForm(prev => ({ ...prev, [field]: value }));
+  const update = (field: string, value: string | number | undefined) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-lg shadow-2xl">
-        <button onClick={onClose} className="absolute top-3 right-3 text-text-muted hover:text-text-primary"><X size={18} /></button>
-        <h2 className="text-lg font-semibold text-text-primary mb-4">{isEditing ? 'Rediger bruker' : 'Opprett bruker'}</h2>
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-text-muted hover:text-text-primary"
+        >
+          <X size={18} />
+        </button>
+        <h2 className="text-lg font-semibold text-text-primary mb-4">
+          {isEditing ? 'Rediger bruker' : 'Opprett bruker'}
+        </h2>
 
-        {error && <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">{error}</div>}
+        {error && (
+          <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Fornavn" value={form.firstName || ''} onChange={v => update('firstName', v)} required />
-            <Field label="Etternavn" value={form.lastName || ''} onChange={v => update('lastName', v)} required />
+            <Field
+              label="Fornavn"
+              value={form.firstName || ''}
+              onChange={(v) => update('firstName', v)}
+              required
+            />
+            <Field
+              label="Etternavn"
+              value={form.lastName || ''}
+              onChange={(v) => update('lastName', v)}
+              required
+            />
             {isEditing && (
-              <Field label="Brukernavn" value={form.username || ''} onChange={v => update('username', v)} disabled />
+              <Field
+                label="Brukernavn"
+                value={form.username || ''}
+                onChange={(v) => update('username', v)}
+                disabled
+              />
             )}
-            <Field label="Passord" value={form.password} onChange={v => update('password', v)} type="password" required={!isEditing} placeholder={isEditing ? '(uendret)' : ''} />
-            <Field label="E-post" value={form.email || ''} onChange={v => update('email', v)} type="email" />
-            <Field label="Telefon" value={form.phone || ''} onChange={v => update('phone', v)} />
-            <Field label="Fødselsdato" value={form.birthDate || ''} onChange={v => update('birthDate', v)} type="date" />
+            <Field
+              label="Passord"
+              value={form.password}
+              onChange={(v) => update('password', v)}
+              type="password"
+              required={!isEditing}
+              placeholder={isEditing ? '(uendret)' : ''}
+            />
+            <Field
+              label="E-post"
+              value={form.email || ''}
+              onChange={(v) => update('email', v)}
+              type="email"
+            />
+            <Field label="Telefon" value={form.phone || ''} onChange={(v) => update('phone', v)} />
+            <Field
+              label="Fødselsdato"
+              value={form.birthDate || ''}
+              onChange={(v) => update('birthDate', v)}
+              type="date"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             {/* Gender */}
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">Kjønn</label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => update('gender', 'MALE')}
+                <button
+                  type="button"
+                  onClick={() => update('gender', 'MALE')}
                   className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                     form.gender === 'MALE'
                       ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
                       : 'bg-bg-input border-border text-text-secondary hover:border-border-focus'
-                  }`}>
+                  }`}
+                >
                   Mann
                 </button>
-                <button type="button" onClick={() => update('gender', 'FEMALE')}
+                <button
+                  type="button"
+                  onClick={() => update('gender', 'FEMALE')}
                   className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                     form.gender === 'FEMALE'
                       ? 'bg-pink-500/10 border-pink-500/30 text-pink-400'
                       : 'bg-bg-input border-border text-text-secondary hover:border-border-focus'
-                  }`}>
+                  }`}
+                >
                   Kvinne
                 </button>
               </div>
@@ -489,8 +748,11 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
             {/* Role */}
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">Rolle</label>
-              <select value={form.role} onChange={e => update('role', e.target.value)}
-                className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus">
+              <select
+                value={form.role}
+                onChange={(e) => update('role', e.target.value)}
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
+              >
                 {currentUser?.role === 'SUPER_ADMIN' ? (
                   <option value="INSTITUTION_ADMIN">Institusjonsadmin</option>
                 ) : (
@@ -505,23 +767,48 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
           </div>
           {currentUser?.role === 'SUPER_ADMIN' && (
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">Institusjon</label>
-              <select value={form.institutionId || ''} onChange={e => update('institutionId', Number(e.target.value))}
-                className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus">
-                {institutions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                Institusjon
+              </label>
+              <select
+                value={form.institutionId || ''}
+                onChange={(e) => update('institutionId', Number(e.target.value))}
+                className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
+              >
+                {institutions.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
               </select>
             </div>
           )}
           {!isEditing && (
             <div className="p-3 bg-accent/5 border border-accent/20 rounded-lg text-xs text-text-secondary">
-              <span className="font-medium text-accent">ℹ️ Brukernavn:</span>{' '}
-              Genereres automatisk fra fornavn og etternavn (f.eks. <span className="font-mono text-text-primary">{form.firstName && form.lastName ? `${form.firstName.toLowerCase()}.${form.lastName.toLowerCase()}` : 'ola.nordmann'}</span>)
+              <span className="font-medium text-accent">ℹ️ Brukernavn:</span> Genereres automatisk
+              fra fornavn og etternavn (f.eks.{' '}
+              <span className="font-mono text-text-primary">
+                {form.firstName && form.lastName
+                  ? `${form.firstName.toLowerCase()}.${form.lastName.toLowerCase()}`
+                  : 'ola.nordmann'}
+              </span>
+              )
             </div>
           )}
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Avbryt</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50">
-              {loading ? 'Lagrer...' : (isEditing ? 'Oppdater' : 'Opprett')}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors"
+            >
+              Avbryt
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Lagrer...' : isEditing ? 'Oppdater' : 'Opprett'}
             </button>
           </div>
         </form>
@@ -530,14 +817,35 @@ function UserFormModal({ user, onClose, onSaved }: { user: User | null; onClose:
   );
 }
 
-function Field({ label, value, onChange, type = 'text', required, disabled, placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; disabled?: boolean; placeholder?: string;
+function Field({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  required,
+  disabled,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  required?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div>
       <label className="block text-sm font-medium text-text-secondary mb-1.5">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} required={required} disabled={disabled} placeholder={placeholder}
-        className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors disabled:opacity-50" />
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        disabled={disabled}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors disabled:opacity-50"
+      />
     </div>
   );
 }
@@ -585,14 +893,17 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
   const downloadPasswords = () => {
     if (!result?.createdStudents?.length) return;
     const header = 'Brukernavn,Fornavn,Etternavn,E-post,F\u00f8dselsdato,Passord,Klasse\n';
-    const rows = result.createdStudents.map(s =>
-      `${s.username},${s.firstName},${s.lastName},${s.email},${s.birthDate},${s.password},${s.className}`
-    ).join('\n');
+    const rows = result.createdStudents
+      .map(
+        (s) =>
+          `${s.username},${s.firstName},${s.lastName},${s.email},${s.birthDate},${s.password},${s.className}`,
+      )
+      .join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `passliste_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `passliste_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -601,7 +912,12 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-3 right-3 text-text-muted hover:text-text-primary"><X size={18} /></button>
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-text-muted hover:text-text-primary"
+        >
+          <X size={18} />
+        </button>
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
             <FileSpreadsheet size={20} className="text-green-400" />
@@ -616,18 +932,35 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
           <>
             {/* Format info */}
             <div className="mb-5 p-4 bg-bg-primary/50 border border-border rounded-lg">
-              <h3 className="text-sm font-semibold text-text-primary mb-2">Påkrevde kolonner i filen:</h3>
+              <h3 className="text-sm font-semibold text-text-primary mb-2">
+                Påkrevde kolonner i filen:
+              </h3>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">fornavn</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">etternavn</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">epost</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">telefon</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">kjønn</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">fødselsdato</span>
-                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">klasse</span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  fornavn
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  etternavn
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  epost
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  telefon
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  kjønn
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  fødselsdato
+                </span>
+                <span className="px-2 py-1 bg-accent/10 text-accent rounded font-medium">
+                  klasse
+                </span>
               </div>
               <p className="text-xs text-text-muted mt-2">
-                Kjønn: M/F, Mann/Kvinne, Gutt/Jente. Klasse må matche et eksisterende program (f.eks. 8A, 8B).
+                Kjønn: M/F, Mann/Kvinne, Gutt/Jente. Klasse må matche et eksisterende program
+                (f.eks. 8A, 8B).
               </p>
               <p className="text-xs text-text-muted mt-1">
                 Brukernavn og passord genereres automatisk.
@@ -636,40 +969,83 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
 
             {/* Drop zone */}
             <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-                dragOver ? 'border-accent bg-accent/5' : file ? 'border-green-500/30 bg-green-500/5' : 'border-border hover:border-accent/50'
+                dragOver
+                  ? 'border-accent bg-accent/5'
+                  : file
+                    ? 'border-green-500/30 bg-green-500/5'
+                    : 'border-border hover:border-accent/50'
               }`}
-              onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = '.csv,.xlsx,.xls'; input.onchange = e => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) handleFile(f); }; input.click(); }}
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv,.xlsx,.xls';
+                input.onchange = (e) => {
+                  const f = (e.target as HTMLInputElement).files?.[0];
+                  if (f) handleFile(f);
+                };
+                input.click();
+              }}
             >
               {file ? (
                 <div className="flex flex-col items-center gap-2">
                   <FileSpreadsheet size={32} className="text-green-400" />
                   <p className="text-sm font-medium text-text-primary">{file.name}</p>
                   <p className="text-xs text-text-muted">{(file.size / 1024).toFixed(1)} KB</p>
-                  <button onClick={(e) => { e.stopPropagation(); setFile(null); }} className="text-xs text-danger hover:underline">Fjern fil</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                    }}
+                    className="text-xs text-danger hover:underline"
+                  >
+                    Fjern fil
+                  </button>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
                   <Upload size={32} className="text-text-muted" />
                   <p className="text-sm text-text-primary font-medium">Dra og slipp fil her</p>
-                  <p className="text-xs text-text-muted">eller klikk for å velge fil (.csv, .xlsx)</p>
+                  <p className="text-xs text-text-muted">
+                    eller klikk for å velge fil (.csv, .xlsx)
+                  </p>
                 </div>
               )}
             </div>
 
-            {error && <div className="mt-3 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">{error}</div>}
+            {error && (
+              <div className="mt-3 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
+                {error}
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 mt-5">
-              <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors">Avbryt</button>
-              <button onClick={handleUpload} disabled={!file || loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!file || loading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50"
+              >
                 {loading ? (
-                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Importerer...</>
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{' '}
+                    Importerer...
+                  </>
                 ) : (
-                  <><Upload size={16} /> Importer elever</>
+                  <>
+                    <Upload size={16} /> Importer elever
+                  </>
                 )}
               </button>
             </div>
@@ -699,10 +1075,14 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
               {/* Errors */}
               {result.errors.length > 0 && (
                 <div className="p-3 bg-danger/5 border border-danger/20 rounded-lg">
-                  <h4 className="text-sm font-medium text-danger mb-2">Feil ({result.errors.length})</h4>
+                  <h4 className="text-sm font-medium text-danger mb-2">
+                    Feil ({result.errors.length})
+                  </h4>
                   <ul className="space-y-1 max-h-32 overflow-y-auto">
                     {result.errors.map((err, i) => (
-                      <li key={i} className="text-xs text-text-muted">• {err}</li>
+                      <li key={i} className="text-xs text-text-muted">
+                        • {err}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -713,8 +1093,10 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-semibold text-text-primary">Opprettede elever</h4>
-                    <button onClick={downloadPasswords}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors">
+                    <button
+                      onClick={downloadPasswords}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors"
+                    >
                       <Download size={13} /> Last ned passliste (CSV)
                     </button>
                   </div>
@@ -730,13 +1112,17 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
                         </tr>
                       </thead>
                       <tbody>
-                        {result.createdStudents.map(s => (
+                        {result.createdStudents.map((s) => (
                           <tr key={s.id} className="border-b border-border/30">
                             <td className="px-3 py-1.5 font-mono text-accent">{s.username}</td>
-                            <td className="px-3 py-1.5 text-text-primary">{s.firstName} {s.lastName}</td>
+                            <td className="px-3 py-1.5 text-text-primary">
+                              {s.firstName} {s.lastName}
+                            </td>
                             <td className="px-3 py-1.5 text-text-secondary">{s.email}</td>
                             <td className="px-3 py-1.5 font-mono text-green-400">{s.password}</td>
-                            <td className="px-3 py-1.5 text-text-secondary">{s.className || '—'}</td>
+                            <td className="px-3 py-1.5 text-text-secondary">
+                              {s.className || '—'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -748,23 +1134,34 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
 
             <div className="flex justify-end gap-3 mt-5">
               {result.createdStudents.length > 0 && (
-                <button onClick={async () => {
-                  if (!confirm(`Er du sikker p\u00e5 at du vil angre importen og slette ${result.createdStudents.length} elever?`)) return;
-                  try {
-                    const ids = result.createdStudents.map(s => s.id);
-                    const res = await batchDeleteUsers(ids);
-                    toast.success(`${res.deleted} elever slettet`);
-                    onDone();
-                  } catch (err: any) {
-                    toast.error('Kunne ikke angre: ' + (err.response?.data?.error || err.message));
-                  }
-                }}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-danger/30 text-danger hover:bg-danger/10 transition-colors">
+                <button
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        `Er du sikker p\u00e5 at du vil angre importen og slette ${result.createdStudents.length} elever?`,
+                      )
+                    )
+                      return;
+                    try {
+                      const ids = result.createdStudents.map((s) => s.id);
+                      const res = await batchDeleteUsers(ids);
+                      toast.success(`${res.deleted} elever slettet`);
+                      onDone();
+                    } catch (err: any) {
+                      toast.error(
+                        'Kunne ikke angre: ' + (err.response?.data?.error || err.message),
+                      );
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-danger/30 text-danger hover:bg-danger/10 transition-colors"
+                >
                   <Undo2 size={16} /> Angre import
                 </button>
               )}
-              <button onClick={onDone}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors">
+              <button
+                onClick={onDone}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors"
+              >
                 Ferdig
               </button>
             </div>

@@ -1,5 +1,12 @@
 import api from './client';
-import type { ApiResponse, Program, ProgramRequest, ProgramMembers, ProgramMember, ProgramMemberRequest } from '../types';
+import type {
+  ApiResponse,
+  Program,
+  ProgramRequest,
+  ProgramMembers,
+  ProgramMember,
+  ProgramMemberRequest,
+} from '../types';
 
 export const getPrograms = async () => {
   const { data } = await api.get<ApiResponse<Program[]>>('/programs');
@@ -41,7 +48,10 @@ export const getProgramMembers = async (programId: number) => {
 };
 
 export const addProgramMember = async (programId: number, req: ProgramMemberRequest) => {
-  const { data } = await api.post<ApiResponse<ProgramMember>>(`/programs/${programId}/members`, req);
+  const { data } = await api.post<ApiResponse<ProgramMember>>(
+    `/programs/${programId}/members`,
+    req,
+  );
   return data.data;
 };
 

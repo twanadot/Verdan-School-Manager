@@ -1,5 +1,12 @@
 import api from './client';
-import type { ApiResponse, ChatRoom, ChatMessage, ContactUser, UnreadCountResponse, SendChatMessageRequest } from '../types';
+import type {
+  ApiResponse,
+  ChatRoom,
+  ChatMessage,
+  ContactUser,
+  UnreadCountResponse,
+  SendChatMessageRequest,
+} from '../types';
 
 // ─── Rooms ───
 
@@ -22,7 +29,9 @@ export const createGroupChat = async (name: string, memberIds: number[]) => {
 
 export const getChatMessages = async (roomId: number, afterId?: number) => {
   const params = afterId ? { after: afterId } : {};
-  const { data } = await api.get<ApiResponse<ChatMessage[]>>(`/chat/rooms/${roomId}/messages`, { params });
+  const { data } = await api.get<ApiResponse<ChatMessage[]>>(`/chat/rooms/${roomId}/messages`, {
+    params,
+  });
   return data.data;
 };
 

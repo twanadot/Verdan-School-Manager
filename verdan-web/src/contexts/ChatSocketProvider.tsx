@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useCallback, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getToken } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
@@ -48,66 +56,64 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
   const pingRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const reconnectDelay = useRef(1000);
   const [isConnected, setIsConnected] = useState(false);
-  const [typingUsers, setTypingUsers] = useState<Map<string, { userId: number; timeout: ReturnType<typeof setTimeout> }>>(new Map());
+  const [typingUsers, setTypingUsers] = useState<
+    Map<string, { userId: number; timeout: ReturnType<typeof setTimeout> }>
+  >(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
 
-  const handleEvent = useCallback((event: WsEvent) => {
-    switch (event.type) {
-      case 'new_message':
-        if (event.roomId && event.message) {
-          queryClient.setQueryData<ChatMessage[]>(
-            ['chatMessages', event.roomId],
-            (old) => {
+  const handleEvent = useCallback(
+    (event: WsEvent) => {
+      switch (event.type) {
+        case 'new_message':
+          if (event.roomId && event.message) {
+            queryClient.setQueryData<ChatMessage[]>(['chatMessages', event.roomId], (old) => {
               if (!old) return [event.message!];
               // Deduplicate: skip if message already in cache (from REST response)
-              if (old.some(m => m.id === event.message!.id)) return old;
+              if (old.some((m) => m.id === event.message!.id)) return old;
               return [...old, event.message!];
-            }
-          );
-          queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-          queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
-        }
-        break;
+            });
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['unreadCount'] });
+          }
+          break;
 
-      case 'message_edited':
-        if (event.roomId && event.messageId) {
-          queryClient.setQueryData<ChatMessage[]>(
-            ['chatMessages', event.roomId],
-            (old) => old?.map(m =>
-              m.id === event.messageId
-                ? { ...m, content: event.content || '', editedAt: event.editedAt || null }
-                : m
-            ) || []
-          );
-        }
-        break;
+        case 'message_edited':
+          if (event.roomId && event.messageId) {
+            queryClient.setQueryData<ChatMessage[]>(
+              ['chatMessages', event.roomId],
+              (old) =>
+                old?.map((m) =>
+                  m.id === event.messageId
+                    ? { ...m, content: event.content || '', editedAt: event.editedAt || null }
+                    : m,
+                ) || [],
+            );
+          }
+          break;
 
-      case 'message_deleted':
-        if (event.roomId && event.messageId) {
-          queryClient.setQueryData<ChatMessage[]>(
-            ['chatMessages', event.roomId],
-            (old) => old?.map(m =>
-              m.id === event.messageId
-                ? { ...m, deleted: true, content: '' }
-                : m
-            ) || []
-          );
-          queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-        }
-        break;
+        case 'message_deleted':
+          if (event.roomId && event.messageId) {
+            queryClient.setQueryData<ChatMessage[]>(
+              ['chatMessages', event.roomId],
+              (old) =>
+                old?.map((m) =>
+                  m.id === event.messageId ? { ...m, deleted: true, content: '' } : m,
+                ) || [],
+            );
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+          }
+          break;
 
-      case 'reaction_toggled':
-        if (event.roomId && event.messageId && event.emoji != null && event.userId != null) {
-          // Smart update: modify the specific message's reactions locally (no refetch)
-          queryClient.setQueryData<ChatMessage[]>(
-            ['chatMessages', event.roomId],
-            (old) => {
+        case 'reaction_toggled':
+          if (event.roomId && event.messageId && event.emoji != null && event.userId != null) {
+            // Smart update: modify the specific message's reactions locally (no refetch)
+            queryClient.setQueryData<ChatMessage[]>(['chatMessages', event.roomId], (old) => {
               if (!old) return old;
-              return old.map(msg => {
+              return old.map((msg) => {
                 if (msg.id !== event.messageId) return msg;
 
                 const reactions = [...(msg.reactions || [])];
-                const existingIdx = reactions.findIndex(r => r.emoji === event.emoji);
+                const existingIdx = reactions.findIndex((r) => r.emoji === event.emoji);
 
                 if (event.added) {
                   if (existingIdx >= 0) {
@@ -135,7 +141,7 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
                       reactions[existingIdx] = {
                         ...existing,
                         count: existing.count - 1,
-                        usernames: existing.usernames.filter(u => u !== event.username),
+                        usernames: existing.usernames.filter((u) => u !== event.username),
                       };
                     }
                   }
@@ -143,56 +149,61 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
 
                 return { ...msg, reactions };
               });
-            }
-          );
-        }
-        break;
+            });
+          }
+          break;
 
-      case 'typing':
-        if (event.roomId && event.userId) {
-          const key = `${event.roomId}-${event.userId}`;
-          setTypingUsers(prev => {
-            const next = new Map(prev);
-            if (event.isTyping) {
-              const existing = next.get(key);
-              if (existing) clearTimeout(existing.timeout);
-              const timeout = setTimeout(() => {
-                setTypingUsers(p => { const n = new Map(p); n.delete(key); return n; });
-              }, 3000);
-              next.set(key, { userId: event.userId!, timeout });
-            } else {
-              const existing = next.get(key);
-              if (existing) clearTimeout(existing.timeout);
-              next.delete(key);
-            }
-            return next;
-          });
-        }
-        break;
+        case 'typing':
+          if (event.roomId && event.userId) {
+            const key = `${event.roomId}-${event.userId}`;
+            setTypingUsers((prev) => {
+              const next = new Map(prev);
+              if (event.isTyping) {
+                const existing = next.get(key);
+                if (existing) clearTimeout(existing.timeout);
+                const timeout = setTimeout(() => {
+                  setTypingUsers((p) => {
+                    const n = new Map(p);
+                    n.delete(key);
+                    return n;
+                  });
+                }, 3000);
+                next.set(key, { userId: event.userId!, timeout });
+              } else {
+                const existing = next.get(key);
+                if (existing) clearTimeout(existing.timeout);
+                next.delete(key);
+              }
+              return next;
+            });
+          }
+          break;
 
-      case 'user_status':
-        if (event.userId != null) {
-          setOnlineUsers(prev => {
-            const next = new Set(prev);
-            if (event.online) next.add(event.userId!);
-            else next.delete(event.userId!);
-            return next;
-          });
-          queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-        }
-        break;
+        case 'user_status':
+          if (event.userId != null) {
+            setOnlineUsers((prev) => {
+              const next = new Set(prev);
+              if (event.online) next.add(event.userId!);
+              else next.delete(event.userId!);
+              return next;
+            });
+            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+          }
+          break;
 
-      case 'unread_update':
-        if (event.totalUnread != null) {
-          queryClient.setQueryData(['unreadCount'], event.totalUnread);
-        }
-        break;
+        case 'unread_update':
+          if (event.totalUnread != null) {
+            queryClient.setQueryData(['unreadCount'], event.totalUnread);
+          }
+          break;
 
-      // pong responses are silently ignored (they just reset the idle timer)
-      case 'pong':
-        break;
-    }
-  }, [queryClient]);
+        // pong responses are silently ignored (they just reset the idle timer)
+        case 'pong':
+          break;
+      }
+    },
+    [queryClient],
+  );
 
   const connect = useCallback(() => {
     const token = getToken();
@@ -229,7 +240,10 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
     socket.onclose = (event) => {
       setIsConnected(false);
       wsRef.current = null;
-      if (pingRef.current) { clearInterval(pingRef.current); pingRef.current = undefined; }
+      if (pingRef.current) {
+        clearInterval(pingRef.current);
+        pingRef.current = undefined;
+      }
 
       if (event.code === 4001 || event.code === 4002) return;
 
@@ -240,7 +254,9 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
       }, delay);
     };
 
-    socket.onerror = () => {};
+    socket.onerror = () => {
+      // Errors are handled by onclose reconnect logic
+    };
   }, [handleEvent]);
 
   // Connect when user is authenticated, disconnect when not
@@ -263,16 +279,21 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getTypingUsersForRoom = useCallback((roomId: number): number[] => {
-    const result: number[] = [];
-    typingUsers.forEach((val, key) => {
-      if (key.startsWith(`${roomId}-`)) result.push(val.userId);
-    });
-    return result;
-  }, [typingUsers]);
+  const getTypingUsersForRoom = useCallback(
+    (roomId: number): number[] => {
+      const result: number[] = [];
+      typingUsers.forEach((val, key) => {
+        if (key.startsWith(`${roomId}-`)) result.push(val.userId);
+      });
+      return result;
+    },
+    [typingUsers],
+  );
 
   return (
-    <ChatSocketContext.Provider value={{ isConnected, sendTyping, getTypingUsersForRoom, onlineUsers }}>
+    <ChatSocketContext.Provider
+      value={{ isConnected, sendTyping, getTypingUsersForRoom, onlineUsers }}
+    >
       {children}
     </ChatSocketContext.Provider>
   );

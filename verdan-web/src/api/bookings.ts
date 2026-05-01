@@ -16,12 +16,19 @@ export const createBooking = async (booking: BookingRequest) => {
   return data.data;
 };
 
-export const updateBooking = async (params: { id: number, booking: BookingRequest, series: boolean }) => {
-  const { data } = await api.put<ApiResponse<Booking>>(`/bookings/${params.id}?series=${params.series}`, params.booking);
+export const updateBooking = async (params: {
+  id: number;
+  booking: BookingRequest;
+  series: boolean;
+}) => {
+  const { data } = await api.put<ApiResponse<Booking>>(
+    `/bookings/${params.id}?series=${params.series}`,
+    params.booking,
+  );
   return data.data;
 };
 
-export const deleteBooking = async (params: { id: number, series: boolean }) => {
+export const deleteBooking = async (params: { id: number; series: boolean }) => {
   await api.delete(`/bookings/${params.id}?series=${params.series}`);
 };
 

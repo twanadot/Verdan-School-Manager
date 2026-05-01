@@ -6,12 +6,19 @@ export const getInstitutions = async (): Promise<Institution[]> => {
   return data.data;
 };
 
-export const createInstitution = async (payload: { name: string; location?: string; level?: string }): Promise<Institution> => {
+export const createInstitution = async (payload: {
+  name: string;
+  location?: string;
+  level?: string;
+}): Promise<Institution> => {
   const { data } = await api.post('/institutions', payload);
   return data.data;
 };
 
-export const updateInstitution = async (id: number, payload: { name: string; location?: string; level?: string }): Promise<Institution> => {
+export const updateInstitution = async (
+  id: number,
+  payload: { name: string; location?: string; level?: string },
+): Promise<Institution> => {
   const { data } = await api.put(`/institutions/${id}`, payload);
   return data.data;
 };

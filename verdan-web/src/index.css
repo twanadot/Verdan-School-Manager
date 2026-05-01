@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Dynamic UI Themes bound to CSS output */
@@ -37,37 +37,37 @@
 
 :root {
   --bg-primary: #fafafa;
-  --bg-secondary: #ffffff; 
+  --bg-secondary: #ffffff;
   --bg-card: #ffffff;
   --bg-hover: #f4f4f5;
   --bg-input: #ffffff;
   --border: #e4e4e7;
   --border-focus: #0f766e;
-  
+
   --text-primary: #27272a;
   --text-secondary: #52525b;
   --text-muted: #71717a;
-  
+
   --accent: #0f766e;
   --accent-hover: #115e59;
-  
-  --success: #16a34a; 
-  --warning: #d97706; 
-  --danger: #ef4444; 
-  --danger-hover: #dc2626; 
-  --info: #0284c7; 
+
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --info: #0284c7;
 
   --sidebar-bg: #ffffff;
   --sidebar-active: #0f766e;
   --sidebar-hover: #f4f4f5;
 
-  --badge-admin: #6366f1; 
-  --badge-teacher: #0ea5e9; 
-  --badge-student: #10b981; 
+  --badge-admin: #6366f1;
+  --badge-teacher: #0ea5e9;
+  --badge-student: #10b981;
   --badge-present: #10b981;
   --badge-absent: #ef4444;
-  --badge-sick: #f59e0b; 
-  --badge-late: #f97316; 
+  --badge-sick: #f59e0b;
+  --badge-late: #f97316;
 
   color-scheme: light;
 }
@@ -78,23 +78,23 @@
   --bg-card: #27272a;
   --bg-hover: #3f3f46;
   --bg-input: #18181b;
-  --border: #3f3f46; 
+  --border: #3f3f46;
   --border-focus: #2dd4bf;
-  
+
   --text-primary: #f4f4f5;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
-  
+
   --accent: #2dd4bf;
   --accent-hover: #14b8a6;
-  
-  --success: #22c55e; 
-  --warning: #fbbf24; 
-  --danger: #f87171; 
-  --danger-hover: #ef4444; 
-  --info: #38bdf8; 
 
-  --sidebar-bg: #18181b; 
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --info: #38bdf8;
+
+  --sidebar-bg: #18181b;
   --sidebar-active: #2dd4bf;
   --sidebar-hover: #27272a;
 
@@ -105,14 +105,18 @@
   --badge-absent: #f87171;
   --badge-sick: #fbbf24;
   --badge-late: #fb923c;
-  
+
   color-scheme: dark;
 }
 
 /* Base styles */
 body {
   @apply bg-bg-primary text-text-primary transition-colors duration-200;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Scrollbar styling */

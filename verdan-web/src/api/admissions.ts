@@ -106,7 +106,10 @@ export const getAvailablePeriods = async () => {
 };
 
 export const submitApplications = async (periodId: number, choices: ApplicationChoice[]) => {
-  const { data } = await api.post<ApiResponse<ApplicationResponse[]>>('/admissions/apply', { periodId, choices });
+  const { data } = await api.post<ApiResponse<ApplicationResponse[]>>('/admissions/apply', {
+    periodId,
+    choices,
+  });
   return data.data;
 };
 
@@ -127,16 +130,26 @@ export const getAdmissionPeriods = async () => {
 };
 
 export const createAdmissionPeriod = async (req: {
-  name: string; fromLevel: string; toLevel: string;
-  startDate: string; endDate: string; maxChoices: number;
+  name: string;
+  fromLevel: string;
+  toLevel: string;
+  startDate: string;
+  endDate: string;
+  maxChoices: number;
 }) => {
   const { data } = await api.post<ApiResponse<AdmissionPeriod>>('/admissions/periods', req);
   return data.data;
 };
 
-export const updateAdmissionPeriod = async (id: number, req: {
-  name?: string; startDate?: string; endDate?: string; maxChoices?: number;
-}) => {
+export const updateAdmissionPeriod = async (
+  id: number,
+  req: {
+    name?: string;
+    startDate?: string;
+    endDate?: string;
+    maxChoices?: number;
+  },
+) => {
   const { data } = await api.put<ApiResponse<AdmissionPeriod>>(`/admissions/periods/${id}`, req);
   return data.data;
 };
@@ -146,24 +159,38 @@ export const closeAdmissionPeriod = async (id: number) => {
 };
 
 export const processAdmissions = async (id: number) => {
-  const { data } = await api.post<ApiResponse<ProcessingResult>>(`/admissions/periods/${id}/process`);
+  const { data } = await api.post<ApiResponse<ProcessingResult>>(
+    `/admissions/periods/${id}/process`,
+  );
   return data.data;
 };
 
 export const getAdmissionOverview = async (id: number) => {
-  const { data } = await api.get<ApiResponse<ProgramApplicantSummary[]>>(`/admissions/periods/${id}/overview`);
+  const { data } = await api.get<ApiResponse<ProgramApplicantSummary[]>>(
+    `/admissions/periods/${id}/overview`,
+  );
   return data.data;
 };
 
 export const getAdmissionRequirements = async (id: number) => {
-  const { data } = await api.get<ApiResponse<AdmissionRequirement[]>>(`/admissions/periods/${id}/requirements`);
+  const { data } = await api.get<ApiResponse<AdmissionRequirement[]>>(
+    `/admissions/periods/${id}/requirements`,
+  );
   return data.data;
 };
 
-export const setAdmissionRequirement = async (periodId: number, req: {
-  programId: number; minGpa?: number | null; maxStudents?: number | null;
-}) => {
-  const { data } = await api.post<ApiResponse<AdmissionRequirement>>(`/admissions/periods/${periodId}/requirements`, req);
+export const setAdmissionRequirement = async (
+  periodId: number,
+  req: {
+    programId: number;
+    minGpa?: number | null;
+    maxStudents?: number | null;
+  },
+) => {
+  const { data } = await api.post<ApiResponse<AdmissionRequirement>>(
+    `/admissions/periods/${periodId}/requirements`,
+    req,
+  );
   return data.data;
 };
 
@@ -176,7 +203,10 @@ export const reopenAdmissionPeriod = async (id: number) => {
 };
 
 export const bulkPublishPrograms = async (periodId: number, programIds: number[]) => {
-  const { data } = await api.post<ApiResponse<number>>(`/admissions/periods/${periodId}/bulk-publish`, { programIds });
+  const { data } = await api.post<ApiResponse<number>>(
+    `/admissions/periods/${periodId}/bulk-publish`,
+    { programIds },
+  );
   return data.data;
 };
 
@@ -189,6 +219,8 @@ export interface EnrollmentResult {
 }
 
 export const enrollAccepted = async (periodId: number) => {
-  const { data } = await api.post<ApiResponse<EnrollmentResult>>(`/admissions/periods/${periodId}/enroll-accepted`);
+  const { data } = await api.post<ApiResponse<EnrollmentResult>>(
+    `/admissions/periods/${periodId}/enroll-accepted`,
+  );
   return data.data;
 };

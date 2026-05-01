@@ -82,10 +82,9 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post<ApiResponse<TokenResponse>>(
-          '/api/auth/refresh',
-          { refreshToken }
-        );
+        const { data } = await axios.post<ApiResponse<TokenResponse>>('/api/auth/refresh', {
+          refreshToken,
+        });
         const { token, refreshToken: newRefresh } = data.data;
         setTokens(token, newRefresh);
         processQueue(null, token);
@@ -102,7 +101,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

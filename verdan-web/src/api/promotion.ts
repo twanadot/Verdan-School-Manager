@@ -41,7 +41,15 @@ export const undoPromotion = async () => {
   return data.data;
 };
 
-export const transferStudent = async (userId: number, fromProgramId: number, toProgramId: number) => {
-  const { data } = await api.post<ApiResponse<string>>('/promotion/transfer', { userId, fromProgramId, toProgramId });
+export const transferStudent = async (
+  userId: number,
+  fromProgramId: number,
+  toProgramId: number,
+) => {
+  const { data } = await api.post<ApiResponse<string>>('/promotion/transfer', {
+    userId,
+    fromProgramId,
+    toProgramId,
+  });
   return data.data;
 };

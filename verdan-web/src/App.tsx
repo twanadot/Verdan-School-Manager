@@ -54,54 +54,60 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected routes with sidebar layout */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<Sidebar />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
+              {/* Protected routes with sidebar layout */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<Sidebar />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
 
-                {/* Super Admin only */}
-                <Route element={<RoleGuard allowed={['SUPER_ADMIN']} />}>
-                  <Route path="/institutions" element={<InstitutionsPage />} />
-                </Route>
+                  {/* Super Admin only */}
+                  <Route element={<RoleGuard allowed={['SUPER_ADMIN']} />}>
+                    <Route path="/institutions" element={<InstitutionsPage />} />
+                  </Route>
 
-                {/* User management */}
-                <Route element={<RoleGuard allowed={['SUPER_ADMIN', 'INSTITUTION_ADMIN']} />}>
-                  <Route path="/users" element={<UsersPage />} />
-                </Route>
+                  {/* User management */}
+                  <Route element={<RoleGuard allowed={['SUPER_ADMIN', 'INSTITUTION_ADMIN']} />}>
+                    <Route path="/users" element={<UsersPage />} />
+                  </Route>
 
-                {/* Institution-level management */}
-                <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN']} />}>
-                  <Route path="/rooms" element={<RoomsPage />} />
-                </Route>
+                  {/* Institution-level management */}
+                  <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN']} />}>
+                    <Route path="/rooms" element={<RoomsPage />} />
+                  </Route>
 
-                {/* Admin + Teacher */}
-                <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}>
-                  <Route path="/bookings" element={<BookingsPage />} />
-                </Route>
+                  {/* Admin + Teacher */}
+                  <Route
+                    element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}
+                  >
+                    <Route path="/bookings" element={<BookingsPage />} />
+                  </Route>
 
-                {/* Institution roles only */}
-                <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}>
-                  <Route path="/subjects" element={<SubjectsPage />} />
-                  <Route path="/grades" element={<GradesPage />} />
-                  <Route path="/attendance" element={<AttendancePage />} />
+                  {/* Institution roles only */}
+                  <Route
+                    element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}
+                  >
+                    <Route path="/subjects" element={<SubjectsPage />} />
+                    <Route path="/grades" element={<GradesPage />} />
+                    <Route path="/attendance" element={<AttendancePage />} />
+                  </Route>
+                  {/* Søknadsportal — students and institution admins */}
+                  <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'STUDENT']} />}>
+                    <Route path="/portal" element={<AdmissionsPortalPage />} />
+                  </Route>
+                  {/* Elevportalen — teachers + students */}
+                  <Route
+                    element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}
+                  >
+                    <Route path="/student-portal" element={<PortalPage />} />
+                  </Route>
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                 </Route>
-                {/* Søknadsportal — students and institution admins */}
-                <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'STUDENT']} />}>
-                  <Route path="/portal" element={<AdmissionsPortalPage />} />
-                </Route>
-                {/* Elevportalen — teachers + students */}
-                <Route element={<RoleGuard allowed={['INSTITUTION_ADMIN', 'TEACHER', 'STUDENT']} />}>
-                  <Route path="/student-portal" element={<PortalPage />} />
-                </Route>
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
               </Route>
-            </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

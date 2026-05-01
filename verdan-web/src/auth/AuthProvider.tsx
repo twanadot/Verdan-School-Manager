@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { login as loginApi } from '../api/auth';
 import { setTokens, clearTokens, getToken } from '../api/client';
 import type { UserInfo, LoginRequest } from '../types';
@@ -19,7 +19,11 @@ function decodeToken(token: string): UserInfo | null {
     // Try to get full user from localStorage first (has more fields)
     const stored = localStorage.getItem('verdan_user');
     if (stored) {
-      try { return JSON.parse(stored); } catch {}
+      try {
+        return JSON.parse(stored);
+      } catch {
+        // Stored data corrupted, fall through to JWT decode
+      }
     }
     return {
       id: parseInt(payload.sub),
@@ -40,18 +44,15 @@ function decodeToken(token: string): UserInfo | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(() => {
     const token = getToken();
-    return token ? decodeToken(token) : null;
-  });
-
-  // Re-check token on mount
-  useEffect(() => {
-    const token = getToken();
-    if (token) {
-      const decoded = decodeToken(token);
-      if (decoded) setUser(decoded);
-      else { clearTokens(); localStorage.removeItem('verdan_user'); }
+    if (!token) return null;
+    const decoded = decodeToken(token);
+    if (!decoded) {
+      clearTokens();
+      localStorage.removeItem('verdan_user');
+      return null;
     }
-  }, []);
+    return decoded;
+  });
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const response = await loginApi(credentials);

@@ -48,6 +48,7 @@
 | **Ikoner** | Lucide React |
 | **Skjemavalidering** | React Hook Form + Zod |
 | **Varsler** | Sonner (toast-notifikasjoner) |
+| **Kodekvalitet** | ESLint 10 + Prettier 3 |
 
 ### Infrastruktur
 | Teknologi | Bruk |
@@ -107,7 +108,7 @@ cd verdan-web
 npm install
 npm run dev
 ```
-Åpne `http://localhost:5173` i nettleseren. Vite proxyer automatisk API-kall til backend.
+Åpne `http://localhost:4000` i nettleseren. Vite proxyer automatisk API-kall til backend.
 
 ### Kjøre tester
 ```bash
@@ -234,9 +235,10 @@ erDiagram
     Program {
         Integer id PK
         String name
-        String code UK
+        String description
         Boolean attendanceRequired
         Integer minAttendancePct
+        String programType
         Integer institution_id FK
     }
 
@@ -257,6 +259,7 @@ erDiagram
         String status
         String note
         String subjectCode
+        Boolean excused
         Integer institution_id FK
     }
 
@@ -313,4 +316,3 @@ Prosjektet følger en lagdelt arkitektur med tydelig separasjon:
 | `types/` | TypeScript-typer som matcher backend-DTOer |
 
 ---
-*Utviklet av Gruppe 2 — Høst 2025*

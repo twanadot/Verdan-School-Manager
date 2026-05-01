@@ -33,11 +33,15 @@ export const getAbsenceRate = async (username: string) => {
 // ── Absence Stats (per-subject with limits) ──
 
 export const getMyAbsenceStats = async () => {
-  const { data } = await api.get<ApiResponse<SubjectAbsenceStats[]>>('/attendance/my-absence-stats');
+  const { data } = await api.get<ApiResponse<SubjectAbsenceStats[]>>(
+    '/attendance/my-absence-stats',
+  );
   return data.data;
 };
 
 export const getStudentAbsenceStats = async (username: string) => {
-  const { data } = await api.get<ApiResponse<SubjectAbsenceStats[]>>(`/attendance/absence-stats/${username}`);
+  const { data } = await api.get<ApiResponse<SubjectAbsenceStats[]>>(
+    `/attendance/absence-stats/${username}`,
+  );
   return data.data;
 };

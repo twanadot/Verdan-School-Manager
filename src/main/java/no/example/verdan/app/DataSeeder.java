@@ -5,6 +5,8 @@ import no.example.verdan.dao.AttendanceDao;
 import no.example.verdan.dao.BookingDao;
 import no.example.verdan.dao.GradeDao;
 import no.example.verdan.dao.InstitutionDao;
+import no.example.verdan.dao.ProgramDao;
+import no.example.verdan.dao.ProgramMemberDao;
 import no.example.verdan.dao.RoomDao;
 import no.example.verdan.dao.SubjectAssignmentDao;
 import no.example.verdan.dao.SubjectDao;
@@ -14,6 +16,8 @@ import no.example.verdan.model.Booking;
 import no.example.verdan.model.BookingStatus;
 import no.example.verdan.model.Grade;
 import no.example.verdan.model.Institution;
+import no.example.verdan.model.Program;
+import no.example.verdan.model.ProgramMember;
 import no.example.verdan.model.Room;
 import no.example.verdan.model.Subject;
 import no.example.verdan.model.SubjectAssignment;
@@ -76,28 +80,42 @@ public class DataSeeder {
             seedSubjectAssignments(saDao, gokstad, usn, svgs, ranvik);
         }
 
-        // --- 6. GRADES ---
+        // --- 6. PROGRAMS ---
+        ProgramDao programDao = new ProgramDao();
+        if (programDao.findAll().isEmpty()) {
+            System.out.println("Seeding Programs...");
+            seedPrograms(programDao, subjectDao, gokstad, usn, svgs, ranvik, innlandet);
+        }
+
+        // --- 7. PROGRAM MEMBERS ---
+        ProgramMemberDao pmDao = new ProgramMemberDao();
+        if (pmDao.findAll().isEmpty()) {
+            System.out.println("Seeding Program Members...");
+            seedProgramMembers(pmDao, programDao, userDao, gokstad, usn, svgs, ranvik, innlandet);
+        }
+
+        // --- 8. GRADES ---
         GradeDao gradeDao = new GradeDao();
         if (gradeDao.findAll().isEmpty()) {
             System.out.println("Seeding Grades...");
             seedGrades(gradeDao, userDao, usn);
         }
 
-        // --- 7. ATTENDANCE ---
+        // --- 9. ATTENDANCE ---
         AttendanceDao attendanceDao = new AttendanceDao();
         if (attendanceDao.findAll().isEmpty()) {
             System.out.println("Seeding Attendance...");
             seedAttendance(attendanceDao, userDao, usn);
         }
 
-        // --- 8. BOOKINGS ---
+        // --- 10. BOOKINGS ---
         BookingDao bookingDao = new BookingDao();
         if (bookingDao.findAll().isEmpty()) {
             System.out.println("Seeding Bookings...");
             seedBookings(bookingDao, roomDao, gokstad);
         }
 
-        // --- 9. FIX VGS ATTENDANCE LIMITS (migration) ---
+        // --- 11. FIX VGS ATTENDANCE LIMITS (migration) ---
         fixVgsAttendanceLimits(instDao);
     }
 
@@ -239,19 +257,18 @@ public class DataSeeder {
     }
 
     // ===================== SUBJECTS =====================
-    // Subject level always matches the institution's level
     private void seedSubjects(SubjectDao dao, Institution gokstad, Institution usn,
             Institution svgs, Institution ranvik, Institution innlandet) {
-        saveSubject(dao, "MAT101", "Basic Mathematics", gokstad);
-        saveSubject(dao, "ENG102", "Academic English", gokstad);
-        saveSubject(dao, "PRO103", "Programming 1", gokstad);
-        saveSubject(dao, "DAT104", "Databases", usn);
-        saveSubject(dao, "HIST105", "Modern History", svgs);
-        saveSubject(dao, "SCI106", "Natural Sciences", svgs);
-        saveSubject(dao, "GEO107", "Geography", ranvik);
-        saveSubject(dao, "SOC108", "Social Studies", ranvik);
-        saveSubject(dao, "FYS109", "Physics", innlandet);
-        saveSubject(dao, "KJE110", "Chemistry", innlandet);
+        saveSubject(dao, "MAT101", "Grunnleggende matematikk", gokstad);
+        saveSubject(dao, "ENG102", "Akademisk engelsk", gokstad);
+        saveSubject(dao, "PRO103", "Programmering 1", gokstad);
+        saveSubject(dao, "DAT104", "Databaser", usn);
+        saveSubject(dao, "HIST105", "Moderne historie", svgs);
+        saveSubject(dao, "SCI106", "Naturfag", svgs);
+        saveSubject(dao, "GEO107", "Geografi", ranvik);
+        saveSubject(dao, "SOC108", "Samfunnsfag", ranvik);
+        saveSubject(dao, "FYS109", "Fysikk", innlandet);
+        saveSubject(dao, "KJE110", "Kjemi", innlandet);
         saveSubject(dao, "DAT2", "Database 2", usn);
     }
 
@@ -332,6 +349,129 @@ public class DataSeeder {
                 LocalDateTime.of(2026, 4, 9, 15, 0), LocalDateTime.of(2026, 4, 9, 18, 0));
         saveBooking(dao, "admin", "PRO103", "", gokstad, f303,
                 LocalDateTime.of(2026, 4, 10, 15, 0), LocalDateTime.of(2026, 4, 10, 18, 0));
+    }
+
+    // ===================== PROGRAMS =====================
+    private void seedPrograms(ProgramDao dao, SubjectDao subjectDao,
+            Institution gokstad, Institution usn, Institution svgs,
+            Institution ranvik, Institution innlandet) {
+
+        // Gokstad (Fagskole)
+        Program itDrift = new Program("IT-drift og sikkerhet", gokstad);
+        itDrift.setDescription("Fagskoleutdanning i IT-drift og informasjonssikkerhet");
+        dao.save(itDrift);
+        linkSubject(dao, subjectDao, itDrift, "MAT101");
+        linkSubject(dao, subjectDao, itDrift, "ENG102");
+        linkSubject(dao, subjectDao, itDrift, "PRO103");
+
+        // USN (Universitet)
+        Program infoBach = new Program("Informatikk Bachelor", usn);
+        infoBach.setDescription("Bachelorgrad i informatikk");
+        dao.save(infoBach);
+        linkSubject(dao, subjectDao, infoBach, "DAT104");
+        linkSubject(dao, subjectDao, infoBach, "DAT2");
+
+        // SVGS (VGS)
+        Program studspes = new Program("Studiespesialisering", svgs);
+        studspes.setDescription("Studieforberedende utdanningsprogram");
+        studspes.setAttendanceRequired(true);
+        studspes.setMinAttendancePct(90);
+        studspes.setProgramType("STUDIEFORBEREDENDE");
+        dao.save(studspes);
+        linkSubject(dao, subjectDao, studspes, "HIST105");
+        linkSubject(dao, subjectDao, studspes, "SCI106");
+
+        // Ranvik (Ungdomsskole)
+        Program klasse10A = new Program("10A", ranvik);
+        klasse10A.setDescription("Klasse 10A");
+        dao.save(klasse10A);
+        linkSubject(dao, subjectDao, klasse10A, "GEO107");
+        linkSubject(dao, subjectDao, klasse10A, "SOC108");
+
+        // Innlandet (Universitet)
+        Program fysikkBach = new Program("Fysikk Bachelor", innlandet);
+        fysikkBach.setDescription("Bachelorgrad i fysikk");
+        dao.save(fysikkBach);
+        linkSubject(dao, subjectDao, fysikkBach, "FYS109");
+        linkSubject(dao, subjectDao, fysikkBach, "KJE110");
+    }
+
+    private void linkSubject(ProgramDao pDao, SubjectDao sDao, Program program, String code) {
+        List<Subject> subjects = sDao.findAll();
+        for (Subject s : subjects) {
+            if (code.equals(s.getCode())) {
+                pDao.addSubject(program.getId(), s.getId());
+                return;
+            }
+        }
+    }
+
+    // ===================== PROGRAM MEMBERS =====================
+    private void seedProgramMembers(ProgramMemberDao pmDao, ProgramDao programDao,
+            UserDao userDao, Institution gokstad, Institution usn,
+            Institution svgs, Institution ranvik, Institution innlandet) {
+
+        // Gokstad - IT-drift
+        Program itDrift = programDao.findByName("IT-drift og sikkerhet", gokstad.getId());
+        if (itDrift != null) {
+            addMember(pmDao, userDao, itDrift, "teacher", "TEACHER", null);
+            addMember(pmDao, userDao, itDrift, "eva.s", "TEACHER", null);
+            addMember(pmDao, userDao, itDrift, "anne.larsen", "TEACHER", null);
+            addMember(pmDao, userDao, itDrift, "student", "STUDENT", "FS1");
+            addMember(pmDao, userDao, itDrift, "maria.o", "STUDENT", "FS1");
+            addMember(pmDao, userDao, itDrift, "julie.a", "STUDENT", "FS1");
+            addMember(pmDao, userDao, itDrift, "adrian.k", "STUDENT", "FS1");
+            addMember(pmDao, userDao, itDrift, "emma.l", "STUDENT", "FS1");
+        }
+
+        // USN - Informatikk
+        Program infoB = programDao.findByName("Informatikk Bachelor", usn.getId());
+        if (infoB != null) {
+            addMember(pmDao, userDao, infoB, "bjorn.k", "TEACHER", null);
+            addMember(pmDao, userDao, infoB, "henrik.o", "TEACHER", null);
+            addMember(pmDao, userDao, infoB, "tobias.a", "STUDENT", "BACHELOR_1");
+            addMember(pmDao, userDao, infoB, "oliver.f", "STUDENT", "BACHELOR_1");
+            addMember(pmDao, userDao, infoB, "kristin.r", "STUDENT", "BACHELOR_1");
+            addMember(pmDao, userDao, infoB, "ari93", "STUDENT", "BACHELOR_1");
+        }
+
+        // SVGS - Studiespesialisering
+        Program studspes = programDao.findByName("Studiespesialisering", svgs.getId());
+        if (studspes != null) {
+            addMember(pmDao, userDao, studspes, "camilla.h", "TEACHER", null);
+            addMember(pmDao, userDao, studspes, "fredrik.a", "TEACHER", null);
+            addMember(pmDao, userDao, studspes, "jonas.v", "TEACHER", null);
+            addMember(pmDao, userDao, studspes, "selma.e", "STUDENT", "VG1");
+            addMember(pmDao, userDao, studspes, "marius.h", "STUDENT", "VG1");
+            addMember(pmDao, userDao, studspes, "nora.l", "STUDENT", "VG1");
+        }
+
+        // Ranvik - 10A
+        Program kl10A = programDao.findByName("10A", ranvik.getId());
+        if (kl10A != null) {
+            addMember(pmDao, userDao, kl10A, "daniel.n", "TEACHER", null);
+            addMember(pmDao, userDao, kl10A, "guro.m", "TEACHER", null);
+            addMember(pmDao, userDao, kl10A, "thomas.b", "STUDENT", "10");
+            addMember(pmDao, userDao, kl10A, "emil.h", "STUDENT", "10");
+        }
+
+        // Innlandet - Fysikk
+        Program fysB = programDao.findByName("Fysikk Bachelor", innlandet.getId());
+        if (fysB != null) {
+            addMember(pmDao, userDao, fysB, "ingrid.t", "TEACHER", null);
+            addMember(pmDao, userDao, fysB, "sofie.b", "STUDENT", "BACHELOR_1");
+            addMember(pmDao, userDao, fysB, "kasper.m", "STUDENT", "BACHELOR_1");
+            addMember(pmDao, userDao, fysB, "helene.s", "STUDENT", "BACHELOR_1");
+        }
+    }
+
+    private void addMember(ProgramMemberDao pmDao, UserDao userDao,
+            Program program, String username, String role, String yearLevel) {
+        List<User> users = userDao.findByUsername(username);
+        if (!users.isEmpty()) {
+            ProgramMember pm = new ProgramMember(program, users.get(0), role, yearLevel);
+            pmDao.save(pm);
+        }
     }
 
     // ===================== HELPER METHODS =====================
