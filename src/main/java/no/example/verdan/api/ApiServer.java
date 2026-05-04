@@ -53,7 +53,7 @@ public class ApiServer {
             // Enable CORS for all origins (adjust for production)
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(rule -> {
-                    rule.allowHost("http://localhost:3000", "http://localhost:4000", "http://localhost:5173");
+                    rule.anyHost();
                 });
             });
         });
