@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Main REST API server for Verdan University Manager.
+ * Main REST API server for Verdan Skolesystem.
  * 
  * Starts a Javalin HTTP server on port 8080 with JWT-based authentication,
  * CORS support, and RESTful endpoints for all entities.
@@ -158,24 +158,24 @@ public class ApiServer {
         app.get("/scalar", ctx -> {
             ctx.contentType("text/html");
             ctx.result("""
-                <!doctype html>
-                <html>
-                  <head>
-                    <title>Verdan API Documentation</title>
-                    <meta charset="utf-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1" />
-                    <style>
-                      body { margin: 0; }
-                    </style>
-                  </head>
-                  <body>
-                    <script
-                      id="api-reference"
-                      data-url="/api/openapi.json"></script>
-                    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-                  </body>
-                </html>
-                """);
+                    <!doctype html>
+                    <html>
+                      <head>
+                        <title>Verdan API Documentation</title>
+                        <meta charset="utf-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1" />
+                        <style>
+                          body { margin: 0; }
+                        </style>
+                      </head>
+                      <body>
+                        <script
+                          id="api-reference"
+                          data-url="/api/openapi.json"></script>
+                        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+                      </body>
+                    </html>
+                    """);
         });
 
         // Serve Swagger UI from WebJar
@@ -185,31 +185,35 @@ public class ApiServer {
             if ("swagger-initializer.js".equals(path)) {
                 ctx.contentType("application/javascript");
                 ctx.result("""
-                    window.onload = function() {
-                      window.ui = SwaggerUIBundle({
-                        url: "/api/openapi.json",
-                        dom_id: '#swagger-ui',
-                        deepLinking: true,
-                        presets: [
-                          SwaggerUIBundle.presets.apis,
-                          SwaggerUIStandalonePreset
-                        ],
-                        plugins: [
-                          SwaggerUIBundle.plugins.DownloadUrl
-                        ],
-                        layout: "StandaloneLayout"
-                      });
-                    };
-                    """);
+                        window.onload = function() {
+                          window.ui = SwaggerUIBundle({
+                            url: "/api/openapi.json",
+                            dom_id: '#swagger-ui',
+                            deepLinking: true,
+                            presets: [
+                              SwaggerUIBundle.presets.apis,
+                              SwaggerUIStandalonePreset
+                            ],
+                            plugins: [
+                              SwaggerUIBundle.plugins.DownloadUrl
+                            ],
+                            layout: "StandaloneLayout"
+                          });
+                        };
+                        """);
                 return;
             }
             // Serve static files from the WebJar
             var is = getClass().getResourceAsStream("/META-INF/resources/webjars/swagger-ui/5.17.14/" + path);
             if (is != null) {
-                if (path.endsWith(".html")) ctx.contentType("text/html");
-                else if (path.endsWith(".css")) ctx.contentType("text/css");
-                else if (path.endsWith(".js")) ctx.contentType("application/javascript");
-                else if (path.endsWith(".png")) ctx.contentType("image/png");
+                if (path.endsWith(".html"))
+                    ctx.contentType("text/html");
+                else if (path.endsWith(".css"))
+                    ctx.contentType("text/css");
+                else if (path.endsWith(".js"))
+                    ctx.contentType("application/javascript");
+                else if (path.endsWith(".png"))
+                    ctx.contentType("image/png");
                 ctx.result(is);
             } else {
                 ctx.status(404);

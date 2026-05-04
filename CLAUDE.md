@@ -68,7 +68,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-## Project: Verdan University Manager
+## Project: Verdan Skolesystem
 
 Java 21 / Maven backend exposing a Javalin REST API backed by Hibernate + MySQL, plus a React + Vite web client in `verdan-web/`.
 
