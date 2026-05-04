@@ -96,6 +96,46 @@ public class UserDao extends BaseDao<User> {
     }
 
     /**
+     * Find users within an institution with server-side pagination.
+     * Uses JPQL setFirstResult/setMaxResults for efficient database-level paging.
+     *
+     * @param institutionId the institution to query
+     * @param page          zero-indexed page number
+     * @param size          number of results per page
+     * @return paginated list of users
+     */
+    public List<User> findAllPaginated(int institutionId, int page, int size) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            return em.createQuery(
+                    "from User u where u.institution.id = :instId order by u.id",
+                    User.class)
+                    .setParameter("instId", institutionId)
+                    .setFirstResult(page * size)
+                    .setMaxResults(size)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
+     * Count total users in an institution (for pagination metadata).
+     */
+    public long countByInstitution(int institutionId) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            return em.createQuery(
+                    "select count(u) from User u where u.institution.id = :instId",
+                    Long.class)
+                    .setParameter("instId", institutionId)
+                    .getSingleResult();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Temporary method: Returns all students.
      * (Subject filtering is not directly supported by the current DB schema).
      */

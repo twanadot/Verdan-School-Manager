@@ -44,6 +44,10 @@ public class User {
   @JoinColumn(name = "institution_id")
   private Institution institution;
 
+  /** Tracks the institution a student was transferred from (null if not transferred). */
+  @Column(name = "transferred_from_institution_id")
+  private Integer transferredFromInstitutionId;
+
   // --- CONSTRUCTORS ---
   
   // Required default constructor for Hibernate
@@ -95,4 +99,7 @@ public class User {
 
   public Institution getInstitution() { return institution; }
   public void setInstitution(Institution institution) { this.institution = institution; }
+
+  public Integer getTransferredFromInstitutionId() { return transferredFromInstitutionId; }
+  public void setTransferredFromInstitutionId(Integer transferredFromInstitutionId) { this.transferredFromInstitutionId = transferredFromInstitutionId; }
 }

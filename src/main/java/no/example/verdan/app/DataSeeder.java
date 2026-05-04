@@ -27,12 +27,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Seeds the database with initial data matching the production AWS RDS state.
  * Only runs if tables are empty (safe to run multiple times).
  */
 public class DataSeeder {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DataSeeder.class);
     private final AuthService auth = new AuthService();
 
     public void seed() {
@@ -40,7 +44,7 @@ public class DataSeeder {
 
         // --- 1. INSTITUTIONS ---
         if (instDao.findAll().isEmpty()) {
-            System.out.println("Seeding Institutions...");
+            LOG.info("Seeding Institutions...");
             seedInstitutions(instDao);
         }
 
@@ -55,63 +59,63 @@ public class DataSeeder {
         // --- 2. USERS ---
         UserDao userDao = new UserDao();
         if (userDao.findAll().size() < 5) {
-            System.out.println("Seeding Users...");
+            LOG.info("Seeding Users...");
             seedUsers(userDao, gokstad, usn, svgs, ranvik, innlandet);
         }
 
         // --- 3. ROOMS ---
         RoomDao roomDao = new RoomDao();
         if (roomDao.findAll().isEmpty()) {
-            System.out.println("Seeding Rooms...");
+            LOG.info("Seeding Rooms...");
             seedRooms(roomDao, gokstad, usn, svgs, ranvik, innlandet);
         }
 
         // --- 4. SUBJECTS ---
         SubjectDao subjectDao = new SubjectDao();
         if (subjectDao.findAll().isEmpty()) {
-            System.out.println("Seeding Subjects...");
+            LOG.info("Seeding Subjects...");
             seedSubjects(subjectDao, gokstad, usn, svgs, ranvik, innlandet);
         }
 
         // --- 5. SUBJECT ASSIGNMENTS ---
         SubjectAssignmentDao saDao = new SubjectAssignmentDao();
         if (saDao.findAll().isEmpty()) {
-            System.out.println("Seeding Subject Assignments...");
+            LOG.info("Seeding Subject Assignments...");
             seedSubjectAssignments(saDao, gokstad, usn, svgs, ranvik);
         }
 
         // --- 6. PROGRAMS ---
         ProgramDao programDao = new ProgramDao();
         if (programDao.findAll().isEmpty()) {
-            System.out.println("Seeding Programs...");
+            LOG.info("Seeding Programs...");
             seedPrograms(programDao, subjectDao, gokstad, usn, svgs, ranvik, innlandet);
         }
 
         // --- 7. PROGRAM MEMBERS ---
         ProgramMemberDao pmDao = new ProgramMemberDao();
         if (pmDao.findAll().isEmpty()) {
-            System.out.println("Seeding Program Members...");
+            LOG.info("Seeding Program Members...");
             seedProgramMembers(pmDao, programDao, userDao, gokstad, usn, svgs, ranvik, innlandet);
         }
 
         // --- 8. GRADES ---
         GradeDao gradeDao = new GradeDao();
         if (gradeDao.findAll().isEmpty()) {
-            System.out.println("Seeding Grades...");
+            LOG.info("Seeding Grades...");
             seedGrades(gradeDao, userDao, usn);
         }
 
         // --- 9. ATTENDANCE ---
         AttendanceDao attendanceDao = new AttendanceDao();
         if (attendanceDao.findAll().isEmpty()) {
-            System.out.println("Seeding Attendance...");
+            LOG.info("Seeding Attendance...");
             seedAttendance(attendanceDao, userDao, usn);
         }
 
         // --- 10. BOOKINGS ---
         BookingDao bookingDao = new BookingDao();
         if (bookingDao.findAll().isEmpty()) {
-            System.out.println("Seeding Bookings...");
+            LOG.info("Seeding Bookings...");
             seedBookings(bookingDao, roomDao, gokstad);
         }
 
@@ -142,7 +146,7 @@ public class DataSeeder {
             }
         }
         if (fixed > 0) {
-            System.out.println("Fixed VGS attendance limits for " + fixed + " programs");
+            LOG.info("Fixed VGS attendance limits for {} programs", fixed);
         }
     }
 
@@ -489,7 +493,7 @@ public class DataSeeder {
             u.setEmail(email);
             u.setInstitution(inst);
             dao.save(u);
-            System.out.println("  User: " + username + " (" + role + ") -> " + inst.getName());
+            LOG.info("  User: {} ({}) -> {}", username, role, inst.getName());
         }
     }
 

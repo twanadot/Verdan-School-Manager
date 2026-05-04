@@ -96,7 +96,7 @@ public class SubjectService {
     /** Get subject by ID. */
     public SubjectDto.Response getSubjectById(int id, int institutionId, boolean isSuperAdmin) {
         Subject subject = isSuperAdmin ? subjectDao.find(id) : subjectDao.find(id, institutionId);
-        if (subject == null) throw new NotFoundException("Subject not found or access denied");
+        if (subject == null) throw new NotFoundException("Fag ikke funnet");
         return toResponse(subject);
     }
 
@@ -107,18 +107,18 @@ public class SubjectService {
 
     public SubjectDto.Response createSubject(SubjectDto.Request req, int institutionId, boolean isSuperAdmin) {
         if (!InputValidator.isNotBlank(req.code()) || !InputValidator.isValidSubjectCode(req.code()))
-            throw new ValidationException("Invalid subject code (2-20 alphanumeric characters)");
+            throw new ValidationException("Ugyldig fagkode (2-20 alfanumeriske tegn)");
         if (!InputValidator.isNotBlank(req.name()))
-            throw new ValidationException("Subject name is required");
+            throw new ValidationException("Fagnavn er påkrevd");
         
         if (subjectDao.findByCode(req.code(), institutionId) != null)
-            throw new ConflictException("Subject code already exists in this institution");
+            throw new ConflictException("Fagkoden '" + req.code().toUpperCase() + "' finnes allerede");
 
         // Resolve institution and inherit its level
         int targetInstId = (req.institutionId() != null && isSuperAdmin) ? req.institutionId() : institutionId;
         no.example.verdan.dao.InstitutionDao instDao = new no.example.verdan.dao.InstitutionDao();
         no.example.verdan.model.Institution inst = instDao.find(targetInstId);
-        if (inst == null) throw new ValidationException("Institution not found");
+        if (inst == null) throw new ValidationException("Institusjon ikke funnet");
         
         String level = inst.getLevel();
         if (level == null || level.isBlank()) level = "UNIVERSITET";
@@ -184,7 +184,7 @@ public class SubjectService {
     /** Delete a subject. Cleans up program links and member assignments first. */
     public void deleteSubject(int id, int institutionId, boolean isSuperAdmin) {
         Subject subject = isSuperAdmin ? subjectDao.find(id) : subjectDao.find(id, institutionId);
-        if (subject == null) throw new NotFoundException("Subject not found or access denied");
+        if (subject == null) throw new NotFoundException("Fag ikke funnet");
 
         // Remove subject from all programs (program_subjects FK)
         ProgramDao programDao = new ProgramDao();
@@ -214,7 +214,7 @@ public class SubjectService {
     public SubjectDto.MembersResponse getMembersForSubject(String code, int institutionId) {
         // We might want to verify the subject exists in the institution first
         if (subjectDao.findByCode(code, institutionId) == null) {
-            throw new NotFoundException("Subject not found in your institution");
+            throw new NotFoundException("Fag ikke funnet i din institusjon");
         }
         var students = assignmentDao.studentsForSubject(code, institutionId).stream().map(this::userToResponse).toList();
         var teachers = assignmentDao.teachersForSubject(code, institutionId).stream().map(this::userToResponse).toList();
@@ -223,13 +223,13 @@ public class SubjectService {
 
     /** Assign a user (student or teacher) to a subject. */
     public void assignUserToSubject(String code, String username, String role, int institutionId) {
-        if (username == null || username.isBlank()) throw new ValidationException("Username is required");
+        if (username == null || username.isBlank()) throw new ValidationException("Brukernavn er påkrevd");
         if (!"STUDENT".equalsIgnoreCase(role) && !"TEACHER".equalsIgnoreCase(role))
-            throw new ValidationException("Role must be STUDENT or TEACHER");
+            throw new ValidationException("Rollen må være STUDENT eller TEACHER");
         
         // Verify user belongs to institution
         List<User> list = new UserDao().findByUsername(username, institutionId);
-        if (list.isEmpty()) throw new NotFoundException("User not found in your institution");
+        if (list.isEmpty()) throw new NotFoundException("Bruker ikke funnet i din institusjon");
 
         if ("STUDENT".equalsIgnoreCase(role)) {
             assignmentDao.assignStudentToSubject(username, code, institutionId);
@@ -243,7 +243,7 @@ public class SubjectService {
     public void removeUserFromSubject(String code, String username, int institutionId) {
          // Verify user belongs to institution
         List<User> list = new UserDao().findByUsername(username, institutionId);
-        if (list.isEmpty()) throw new NotFoundException("User not found in your institution");
+        if (list.isEmpty()) throw new NotFoundException("Bruker ikke funnet i din institusjon");
 
         assignmentDao.removeAssignmentsForUserAndSubject(username, code, institutionId);
         LOG.info("Removed {} from subject {} in institution {}", username, code, institutionId);
@@ -255,6 +255,7 @@ public class SubjectService {
         String birthStr = u.getBirthDate() != null ? u.getBirthDate().toString() : null;
         return new UserDto.Response(u.getId(), u.getUsername(), u.getRole(),
                 u.getFirstName(), u.getLastName(), u.getEmail(), u.getPhone(),
-                u.getGender(), birthStr, instId, instName);
+                u.getGender(), birthStr, instId, instName,
+                u.getTransferredFromInstitutionId(), null);
     }
 }

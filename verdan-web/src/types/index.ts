@@ -64,6 +64,8 @@ export interface User {
   birthDate?: string;
   institutionId?: number;
   institutionName?: string;
+  transferredFromInstitutionId?: number;
+  transferredFromInstitutionName?: string;
 }
 
 export interface CreateUserRequest {
@@ -146,6 +148,7 @@ export interface Program {
   attendanceRequired: boolean;
   minAttendancePct?: number | null;
   programType?: string | null;
+  currentStudentCount: number;
   subjects: ProgramSubjectSummary[];
 }
 

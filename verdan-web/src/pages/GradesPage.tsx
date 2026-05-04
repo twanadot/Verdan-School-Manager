@@ -138,7 +138,16 @@ function yearLevelSortNum(yearLevel: string | null | undefined): number {
   // Ungdomsskole: 8→8, 9→9, 10→10
   const numMatch = yearLevel.match(/^(\d+)$/);
   if (numMatch) return parseInt(numMatch[1]);
-  // Universitet/Fagskole: BACHELOR_1→1, MASTER_4→4
+  // Universitet: BACHELOR_1→1, BACHELOR_3→3, MASTER_1→11, MASTER_2→12, PHD_1→21
+  const bachelorMatch = yearLevel.match(/^BACHELOR_(\d+)$/i);
+  if (bachelorMatch) return parseInt(bachelorMatch[1]);
+  const masterMatch = yearLevel.match(/^MASTER_(\d+)$/i);
+  if (masterMatch) return 10 + parseInt(masterMatch[1]);
+  const phdMatch = yearLevel.match(/^PHD_(\d+)$/i);
+  if (phdMatch) return 20 + parseInt(phdMatch[1]);
+  // Fagskole
+  const fagMatch = yearLevel.match(/^FAGSKOLE_(\d+)$/i);
+  if (fagMatch) return parseInt(fagMatch[1]);
   const uniMatch = yearLevel.match(/_(\d+)$/);
   if (uniMatch) return parseInt(uniMatch[1]);
   return 999;
@@ -155,6 +164,8 @@ function formatYearLabel(yearLevel: string): string {
   if (bachelorMatch) return `Bachelor ${bachelorMatch[1]}. år`;
   const masterMatch = yearLevel.match(/^MASTER_(\d+)$/i);
   if (masterMatch) return `Master ${masterMatch[1]}. år`;
+  const phdMatch = yearLevel.match(/^PHD_(\d+)$/i);
+  if (phdMatch) return `PhD ${phdMatch[1]}. år`;
   const fagMatch = yearLevel.match(/^FAGSKOLE_(\d+)$/i);
   if (fagMatch) return `Fagskole ${fagMatch[1]}. år`;
   return yearLevel;
@@ -935,6 +946,14 @@ function EducationHistoryView({
     UNIVERSITET: '🏛️',
   };
 
+  // Sort order for education levels — progressive educational path
+  const LEVEL_ORDER: Record<string, number> = {
+    UNGDOMSSKOLE: 1,
+    VGS: 2,
+    FAGSKOLE: 3,
+    UNIVERSITET: 4,
+  };
+
   const trinnLabels: Record<string, string> = {
     '8': '8. klasse',
     '9': '9. klasse',
@@ -967,10 +986,29 @@ function EducationHistoryView({
     return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   };
 
+  // Sort history by education level (Ungdomsskole → VGS → Fagskole → Universitet)
+  // Secondary sort: by lowest year level within each entry (Bachelor before PhD)
+  const minYearSort = (entry: EducationLevel) => {
+    if (entry.grades.length === 0) return 999;
+    return Math.min(
+      ...entry.grades.map((g) => {
+        const yr = g.yearLevel || subjectYearMap[g.subject.toUpperCase()] || '';
+        return yearLevelSortNum(yr);
+      }),
+    );
+  };
+
+  const sortedHistory = [...history].sort((a, b) => {
+    const orderA = LEVEL_ORDER[a.level] ?? 99;
+    const orderB = LEVEL_ORDER[b.level] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return minYearSort(a) - minYearSort(b);
+  });
+
   return (
     <div className="space-y-6">
       <div className="relative">
-        {history.map((eduLevel, idx) => {
+        {sortedHistory.map((eduLevel, idx) => {
           // Group grades by trinn — use grade's stored yearLevel, then subjectYearMap
           const byTrinn: Record<string, Grade[]> = {};
           eduLevel.grades.forEach((g) => {
@@ -987,7 +1025,7 @@ function EducationHistoryView({
 
           return (
             <div key={`${eduLevel.level}-${eduLevel.institutionId}`} className="relative mb-6">
-              {idx < history.length - 1 && (
+              {idx < sortedHistory.length - 1 && (
                 <div className="absolute left-5 top-12 bottom-0 w-0.5 bg-border" />
               )}
 
@@ -1346,7 +1384,7 @@ function GradeFormModal({
   const subjectOptions = filteredSubjects.map((s) => ({
     value: s.code,
     label: s.name,
-    sublabel: `${s.code} (${s.level === 'UNGDOMSSKOLE' || s.level === 'VGS' ? '1-6' : 'A-F'})`,
+    sublabel: `${s.code} (${isNumericLevel(s.level as SubjectLevel) ? '1-6' : 'A-F'})`,
   }));
 
   const selectedSubject = subjects.find((s) => s.code.toUpperCase() === form.subject.toUpperCase());
@@ -1378,6 +1416,9 @@ function GradeFormModal({
       { value: 'BACHELOR_3', label: 'Bachelor 3' },
       { value: 'MASTER_1', label: 'Master 1' },
       { value: 'MASTER_2', label: 'Master 2' },
+      { value: 'PHD_1', label: 'PhD 1' },
+      { value: 'PHD_2', label: 'PhD 2' },
+      { value: 'PHD_3', label: 'PhD 3' },
     ];
   }, [instLevel]);
 

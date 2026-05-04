@@ -19,5 +19,6 @@ public final class UserDto {
     /** Response body for user data (never includes password). */
     public record Response(int id, String username, String role,
             String firstName, String lastName, String email, String phone,
-            String gender, String birthDate, Integer institutionId, String institutionName) {}
+            String gender, String birthDate, Integer institutionId, String institutionName,
+            Integer transferredFromInstitutionId, String transferredFromInstitutionName) {}
 }

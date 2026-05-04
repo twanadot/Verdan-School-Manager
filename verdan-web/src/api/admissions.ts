@@ -40,7 +40,7 @@ export interface ApplicationResponse {
   institutionName: string;
   priority: number;
   gpaSnapshot: number | null;
-  status: 'PENDING' | 'ACCEPTED' | 'WAITLISTED' | 'REJECTED' | 'WITHDRAWN' | 'ENROLLED';
+  status: 'PENDING' | 'ACCEPTED' | 'CONFIRMED' | 'WAITLISTED' | 'REJECTED' | 'WITHDRAWN' | 'ENROLLED';
   submittedAt: string | null;
   processedAt: string | null;
 }
@@ -120,6 +120,10 @@ export const getMyApplications = async () => {
 
 export const withdrawApplication = async (id: number) => {
   await api.put(`/admissions/applications/${id}/withdraw`);
+};
+
+export const confirmApplication = async (id: number) => {
+  await api.put(`/admissions/applications/${id}/confirm`);
 };
 
 // ── Admin API ──

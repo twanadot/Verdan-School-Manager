@@ -182,7 +182,7 @@ public class PromotionService {
         Set<String> finalYears = FINAL_YEARS.getOrDefault(instLevel, Set.of());
 
         if (progression == null) {
-            throw new ValidationException("No progression defined for level: " + instLevel);
+            throw new ValidationException("Ingen progresjon definert for nivå: " + instLevel);
         }
 
         // Load all programs for target lookup
@@ -310,7 +310,7 @@ public class PromotionService {
         Set<String> finalYears = FINAL_YEARS.getOrDefault(instLevel, Set.of());
 
         if (progression == null) {
-            throw new ValidationException("No progression defined for level: " + instLevel);
+            throw new ValidationException("Ingen progresjon definert for nivå: " + instLevel);
         }
 
         List<Program> allPrograms = programDao.findByInstitution(institutionId);
@@ -509,16 +509,16 @@ public class PromotionService {
     public void transferStudent(int userId, int fromProgramId, int toProgramId, int institutionId) {
         ProgramMember pm = memberDao.findByProgramAndUser(fromProgramId, userId);
         if (pm == null) {
-            throw new ValidationException("Student not found in source program");
+            throw new ValidationException("Eleven ble ikke funnet i kildeprogrammet");
         }
         if (!"STUDENT".equalsIgnoreCase(pm.getRole())) {
-            throw new ValidationException("Only students can be transferred");
+            throw new ValidationException("Bare elever kan overføres");
         }
 
         Program sourceProgram = programDao.findWithSubjects(fromProgramId);
         Program targetProgram = programDao.findWithSubjects(toProgramId);
         if (targetProgram == null) {
-            throw new ValidationException("Target program not found");
+            throw new ValidationException("Målprogrammet ble ikke funnet");
         }
 
         String yearLevel = pm.getYearLevel();

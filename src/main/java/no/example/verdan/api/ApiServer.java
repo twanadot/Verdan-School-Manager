@@ -67,6 +67,7 @@ public class ApiServer {
         });
 
         app.exception(NotFoundException.class, (e, ctx) -> {
+            LOG.warn("404 Not Found on {} {}: {}", ctx.method(), ctx.path(), e.getMessage());
             ctx.status(404).json(ApiResponse.error(e.getMessage()));
         });
 
@@ -75,6 +76,7 @@ public class ApiServer {
         });
 
         app.exception(IllegalArgumentException.class, (e, ctx) -> {
+            LOG.warn("404 IllegalArg on {} {}: {}", ctx.method(), ctx.path(), e.getMessage());
             ctx.status(404).json(ApiResponse.error(e.getMessage()));
         });
 
@@ -89,7 +91,7 @@ public class ApiServer {
         // Catch-all for unexpected errors
         app.exception(Exception.class, (e, ctx) -> {
             LOG.error("Unhandled exception on {} {}: {}", ctx.method(), ctx.path(), e.getMessage(), e);
-            ctx.status(500).json(ApiResponse.error("Internal server error"));
+            ctx.status(500).json(ApiResponse.error("Noe gikk galt. Prøv igjen eller kontakt administrator."));
         });
 
         // Register middleware (order matters: metrics first, auth second)

@@ -5,6 +5,7 @@ import {
   getMyApplications,
   submitApplications,
   withdrawApplication,
+  confirmApplication,
   getAdmissionPeriods,
   createAdmissionPeriod,
   closeAdmissionPeriod,
@@ -85,6 +86,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   },
   REJECTED: { label: 'Avslått', color: 'text-red-400 bg-red-400/10', icon: <XCircle size={14} /> },
   WITHDRAWN: { label: 'Trukket', color: 'text-text-muted bg-bg-hover', icon: <X size={14} /> },
+  CONFIRMED: {
+    label: 'Bekreftet',
+    color: 'text-emerald-400 bg-emerald-400/10',
+    icon: <CheckCircle2 size={14} />,
+  },
 };
 
 export function AdmissionsPortalPage() {
@@ -732,6 +738,15 @@ function MyApplications() {
     onError: () => toast.error('Kunne ikke trekke søknad'),
   });
 
+  const confirmMut = useMutation({
+    mutationFn: (id: number) => confirmApplication(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myApplications'] });
+      toast.success('Tilbud bekreftet! Andre aksepterte tilbud er trukket automatisk.');
+    },
+    onError: () => toast.error('Kunne ikke bekrefte tilbud'),
+  });
+
   // Group by period
   const grouped = useMemo(() => {
     const map = new Map<string, ApplicationResponse[]>();
@@ -796,7 +811,24 @@ function MyApplications() {
                         >
                           {sc.icon} {sc.label}
                         </span>
-                        {(app.status === 'PENDING' || app.status === 'ACCEPTED') && (
+                        {app.status === 'ACCEPTED' && (
+                          <>
+                            <button
+                              onClick={() => confirmMut.mutate(app.id)}
+                              disabled={confirmMut.isPending}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle2 size={12} /> Bekreft tilbud
+                            </button>
+                            <button
+                              onClick={() => setWithdrawTarget(app)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors"
+                            >
+                              <XCircle size={12} /> Avslå tilbud
+                            </button>
+                          </>
+                        )}
+                        {app.status === 'PENDING' && (
                           <button
                             onClick={() => setWithdrawTarget(app)}
                             className="p-1.5 rounded-md hover:bg-danger/10 text-text-muted hover:text-danger transition-colors"
@@ -1026,7 +1058,7 @@ function PeriodCard({
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-50"
               >
                 <CheckCircle2 size={13} />{' '}
-                {enrollMut.isPending ? 'Melder inn...' : 'Meld inn aksepterte elever'}
+                {enrollMut.isPending ? 'Melder inn...' : 'Meld inn bekreftede elever'}
               </button>
             )}
             <button
@@ -1123,6 +1155,8 @@ function ApplicantOverview({ periodId }: { periodId: number }) {
     switch (status) {
       case 'ACCEPTED':
         return <CheckCircle2 size={13} className="text-green-400" />;
+      case 'CONFIRMED':
+        return <CheckCircle2 size={13} className="text-emerald-400" />;
       case 'WAITLISTED':
         return <AlertTriangle size={13} className="text-orange-400" />;
       case 'REJECTED':
@@ -1172,16 +1206,18 @@ function ApplicantOverview({ periodId }: { periodId: number }) {
                     </span>
                     <span
                       className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        a.status === 'ACCEPTED'
-                          ? 'bg-green-400/10 text-green-400'
-                          : a.status === 'WAITLISTED'
-                            ? 'bg-orange-400/10 text-orange-400'
-                            : a.status === 'REJECTED'
-                              ? 'bg-red-400/10 text-red-400'
-                              : 'bg-bg-hover text-text-muted'
+                        a.status === 'CONFIRMED'
+                          ? 'bg-emerald-400/10 text-emerald-400'
+                          : a.status === 'ACCEPTED'
+                            ? 'bg-green-400/10 text-green-400'
+                            : a.status === 'WAITLISTED'
+                              ? 'bg-orange-400/10 text-orange-400'
+                              : a.status === 'REJECTED'
+                                ? 'bg-red-400/10 text-red-400'
+                                : 'bg-bg-hover text-text-muted'
                       }`}
                     >
-                      {a.status}
+                      {a.status === 'CONFIRMED' ? 'BEKREFTET' : a.status}
                     </span>
                   </div>
                 </div>
@@ -1371,17 +1407,45 @@ function RequirementsModal({ periodId, onClose }: { periodId: number; onClose: (
               </select>
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs text-text-muted mb-1">Min. snittkarakter</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="1"
-                    max="6"
-                    value={minGpa}
-                    onChange={(e) => setMinGpa(e.target.value)}
-                    placeholder="Valgfritt"
-                    className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary"
-                  />
+                  <label className="block text-xs text-text-muted mb-1">
+                    Min. snittkarakter{' '}
+                    {(() => {
+                      const prog = programs.find(p => p.id === selectedProgram);
+                      return prog?.programType === 'MASTER' || prog?.programType === 'PHD' ? '(A-F)' : '(1-6)';
+                    })()}
+                  </label>
+                  {(() => {
+                    const prog = programs.find(p => p.id === selectedProgram);
+                    const useLetterGrade = prog?.programType === 'MASTER' || prog?.programType === 'PHD';
+                    if (useLetterGrade) {
+                      return (
+                        <select
+                          value={minGpa}
+                          onChange={(e) => setMinGpa(e.target.value)}
+                          className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary"
+                        >
+                          <option value="">Valgfritt</option>
+                          <option value="6">A</option>
+                          <option value="5">B</option>
+                          <option value="4">C</option>
+                          <option value="3">D</option>
+                          <option value="2">E</option>
+                        </select>
+                      );
+                    }
+                    return (
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="1"
+                        max="6"
+                        value={minGpa}
+                        onChange={(e) => setMinGpa(e.target.value)}
+                        placeholder="Valgfritt"
+                        className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary"
+                      />
+                    );
+                  })()}
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs text-text-muted mb-1">Maks antall plasser</label>

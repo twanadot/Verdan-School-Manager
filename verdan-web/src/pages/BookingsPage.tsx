@@ -153,8 +153,8 @@ export function BookingsPage() {
   return (
     <div>
       <PageHeader
-        title={isStudent ? 'Timeplan' : 'Bookinger'}
-        description="Ukentlig rombookingkalender"
+        title="Timeplan"
+        description={isStudent ? 'Din ukentlige timeplan' : 'Administrer ukentlige timeplaner og rombookinger'}
         action={
           canCreate ? (
             <button
@@ -562,7 +562,14 @@ function EditBookingModal({
     endTime: booking.endDateTime.split('T')[1].substring(0, 5),
   });
 
+  const [error, setError] = useState('');
+
   const handleSubmit = (series: boolean) => {
+    if (form.startTime >= form.endTime) {
+      setError('Starttid må være før sluttid.');
+      return;
+    }
+    setError('');
     const startDateTime = `${form.startDate}T${form.startTime}:00`;
     const endDateTime = `${form.endDate}T${form.endTime}:00`;
     onConfirm(
@@ -642,6 +649,11 @@ function EditBookingModal({
             />
           </div>
         </div>
+        {error && (
+          <div className="mb-3 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
+            {error}
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <button
             onClick={() => handleSubmit(true)}
@@ -682,11 +694,6 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<{
-    total: number;
-    current: number;
-    conflicts: number;
-  } | null>(null);
   // Selected days: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
 
@@ -699,13 +706,16 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     });
   };
 
-  const subjectOptions = subjects.map((s) => ({ value: s.code, label: s.name, sublabel: s.code }));
+  // Filter subject options based on selected program
+  const selectedProgram = programs.find((p) => p.id === form.programId);
+  const subjectOptions = selectedProgram
+    ? selectedProgram.subjects.map((s) => ({ value: s.code, label: s.name, sublabel: s.code }))
+    : subjects.map((s) => ({ value: s.code, label: s.name, sublabel: s.code }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setProgress(null);
 
     if (new Date(form.toDate) < new Date(form.fromDate)) {
       setError('Sluttdato må være lik eller etter startdato.');
@@ -739,41 +749,44 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
         return;
       }
 
-      let conflicts = 0;
-      setProgress({ total: daysToCreate.length, current: 0, conflicts: 0 });
 
-      for (let i = 0; i < daysToCreate.length; i++) {
-        const d = daysToCreate[i];
+      // Send all booking requests in parallel for speed
+      const promises = daysToCreate.map((d) => {
         const dateStr = d.toISOString().split('T')[0];
         const startDateTime = `${dateStr}T${form.startTime}:00`;
         const endDateTime = `${dateStr}T${form.endTime}:00`;
+        return createBooking({
+          roomId: form.roomId,
+          subject: form.subject,
+          description: form.description,
+          startDateTime,
+          endDateTime,
+          programId: form.programId || undefined,
+        });
+      });
 
-        try {
-          await createBooking({
-            roomId: form.roomId,
-            subject: form.subject,
-            description: form.description,
-            startDateTime,
-            endDateTime,
-            programId: form.programId || undefined,
-          });
-        } catch (err: any) {
-          if (err.response?.status === 409) conflicts++;
-          else throw err;
+      const results = await Promise.allSettled(promises);
+
+      let conflicts = 0;
+      let errors = 0;
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          if (r.reason?.response?.status === 409) conflicts++;
+          else errors++;
         }
-        setProgress((p) => (p ? { ...p, current: i + 1, conflicts } : null));
       }
 
-      if (conflicts === daysToCreate.length) {
+      const failed = conflicts + errors;
+      if (failed === daysToCreate.length) {
         toast.error(
           'Kunne ikke opprette noen bookinger. Rommet var opptatt på alle valgte tidspunkter.',
         );
-      } else if (conflicts > 0) {
+      } else if (failed > 0) {
         toast.warning(
-          `Opprettet ${daysToCreate.length - conflicts} bookinger. Hoppet over ${conflicts} opptatte dager.`,
+          `Opprettet ${daysToCreate.length - failed} bookinger. Hoppet over ${failed} dager (${conflicts} opptatte).`,
         );
       } else {
-        toast.success(`Opprettet bookinger over ${daysToCreate.length} ukedag(er).`);
+        toast.success(`Opprettet ${daysToCreate.length} bookinger.`);
         onClose();
       }
       onSaved();
@@ -824,32 +837,31 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">Fagkode</label>
-            <AutocompleteInput
-              value={form.subject}
-              onChange={(v) => setForm({ ...form, subject: v })}
-              options={subjectOptions}
-              placeholder="f.eks. INF100"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">
-              Klasse (valgfritt)
-            </label>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">Klasse</label>
             <select
               value={form.programId}
-              onChange={(e) => setForm({ ...form, programId: parseInt(e.target.value) })}
+              onChange={(e) => setForm({ ...form, programId: parseInt(e.target.value), subject: '' })}
+              required
               disabled={loading}
               className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus disabled:opacity-50"
             >
-              <option value={0}>Alle klasser</option>
+              <option value={0}>Velg klasse...</option>
               {programs.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">Fagkode</label>
+            <AutocompleteInput
+              value={form.subject}
+              onChange={(v) => setForm({ ...form, subject: v })}
+              options={subjectOptions}
+              placeholder={form.programId ? 'Velg fag...' : 'Velg klasse først'}
+              required
+            />
           </div>
           {/* Day-of-week selector */}
           <div>
@@ -949,14 +961,6 @@ function BookingFormModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
             />
           </div>
 
-          {loading && progress && (
-            <div className="text-xs text-text-secondary bg-bg-hover p-2 rounded-lg">
-              Behandler: {progress.current} / {progress.total} dager ...
-              {progress.conflicts > 0 && (
-                <span className="text-danger ml-2">({progress.conflicts} konflikter)</span>
-              )}
-            </div>
-          )}
 
           <div className="flex justify-end gap-3 pt-2">
             {!loading && (

@@ -48,6 +48,10 @@ public class InstitutionApiController {
         if (req.getName() == null || req.getName().isBlank()) {
             throw new ValidationException(List.of("Institution name is required"));
         }
+        // Check for duplicate name before hitting DB constraint
+        if (institutionDao.findByName(req.getName()) != null) {
+            throw new no.example.verdan.service.ConflictException("An institution with this name already exists");
+        }
         institutionDao.save(req);
         LOG.info("Institution created: {} (ID: {})", req.getName(), req.getId());
         ctx.status(201).json(ApiResponse.ok(req));
@@ -60,6 +64,11 @@ public class InstitutionApiController {
         Institution req = ctx.bodyAsClass(Institution.class);
         if (req.getName() == null || req.getName().isBlank()) {
             throw new ValidationException(List.of("Institution name is required"));
+        }
+        // Check for duplicate name (excluding this institution's own current name)
+        Institution existingByName = institutionDao.findByName(req.getName());
+        if (existingByName != null && existingByName.getId() != id) {
+            throw new no.example.verdan.service.ConflictException("An institution with this name already exists");
         }
         Institution updated = institutionDao.updateInstitution(id, req.getName(), req.getLocation(), req.getLevel(), req.getOwnership());
         LOG.info("Institution updated: {} (ID: {})", updated.getName(), id);

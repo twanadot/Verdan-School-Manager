@@ -23,6 +23,19 @@ public class InstitutionDao extends BaseDao<Institution> {
         }
     }
 
+    /** Find an active institution by exact name (for uniqueness checks). */
+    public Institution findByName(String name) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            var list = em.createQuery("from Institution i where i.name = :name and i.active = true", Institution.class)
+                    .setParameter("name", name.trim())
+                    .getResultList();
+            return list.isEmpty() ? null : list.get(0);
+        } finally {
+            em.close();
+        }
+    }
+
     /** Soft-delete: mark as inactive instead of removing from DB. */
     public void softDelete(int id) {
         EntityManager em = HibernateUtil.emf().createEntityManager();

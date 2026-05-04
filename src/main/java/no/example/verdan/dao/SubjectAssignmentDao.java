@@ -348,4 +348,24 @@ public class SubjectAssignmentDao extends BaseDao<SubjectAssignment> {
             em.close();
         }
     }
+
+    /** Remove all subject assignments for a user at a specific institution. Used during school transfer. */
+    public void removeAllForUser(String username, int institutionId) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            em.getTransaction().begin();
+            em.createQuery(
+                "DELETE FROM SubjectAssignment sa WHERE LOWER(sa.username) = LOWER(:un) " +
+                "AND sa.institution.id = :instId")
+                .setParameter("un", username)
+                .setParameter("instId", institutionId)
+                .executeUpdate();
+            em.getTransaction().commit();
+        } catch (Exception ex) {
+            if (em.getTransaction().isActive()) em.getTransaction().rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
+    }
 }

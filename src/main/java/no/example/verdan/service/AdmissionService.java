@@ -283,16 +283,16 @@ public class AdmissionService {
             throw new ValidationException("Søknadsfristen er utløpt");
 
         if (submit.choices() == null || submit.choices().isEmpty())
-            throw new ValidationException("At least one choice is required");
+            throw new ValidationException("Du må velge minst ett studieprogram");
         if (submit.choices().size() > period.getMaxChoices())
-            throw new ValidationException("Maximum " + period.getMaxChoices() + " choices allowed");
+            throw new ValidationException("Maksimalt " + period.getMaxChoices() + " valg er tillatt");
 
         // Check for existing applications in this period
         List<Application> existing = admissionDao.findStudentApplicationsInPeriod(studentId, submit.periodId());
 
         // Block only if any app has been processed by the admin algorithm (ACCEPTED/WAITLISTED)
         boolean hasProcessed = existing.stream()
-            .anyMatch(a -> "ACCEPTED".equals(a.getStatus()) || "WAITLISTED".equals(a.getStatus()));
+            .anyMatch(a -> ApplicationStatus.ACCEPTED.name().equals(a.getStatus()) || ApplicationStatus.WAITLISTED.name().equals(a.getStatus()));
         if (hasProcessed)
             throw new ConflictException("Søknadene dine er allerede behandlet og kan ikke endres");
 
@@ -322,33 +322,33 @@ public class AdmissionService {
         }
 
         // Determine initial status
-        String initialStatus;
+        ApplicationStatus initialStatus;
         if (!hasDiploma && !"UNGDOMSSKOLE".equalsIgnoreCase(period.getFromLevel())) {
-            initialStatus = "REJECTED";
+            initialStatus = ApplicationStatus.REJECTED;
             LOG.info("Student '{}' does not have required completion from {} — applications auto-rejected",
                 student.getUsername(), period.getFromLevel());
         } else if (!gpaResult.allPassing() && !"UNGDOMSSKOLE".equalsIgnoreCase(period.getFromLevel())) {
             // Failing grades only block admission for VGS→higher. Ungdomsskole students
             // have a legal right to VGS regardless of grades.
-            initialStatus = "REJECTED";
+            initialStatus = ApplicationStatus.REJECTED;
             LOG.info("Student '{}' has failing grades — applications will be auto-rejected", student.getUsername());
         } else {
-            initialStatus = "PENDING";
+            initialStatus = ApplicationStatus.PENDING;
         }
 
         List<Application> apps = new ArrayList<>();
         for (AdmissionDto.ApplicationChoice choice : submit.choices()) {
             Program program = programDao.findWithSubjects(choice.programId());
-            if (program == null) throw new NotFoundException("Program not found: " + choice.programId());
+            if (program == null) throw new NotFoundException("Studieprogram ikke funnet: " + choice.programId());
 
             // For university internal admissions, validate degree prerequisites per program
-            String appStatus = initialStatus;
+            ApplicationStatus appStatus = initialStatus;
             if ("UNIVERSITET".equalsIgnoreCase(period.getFromLevel())
                     && "UNIVERSITET".equalsIgnoreCase(period.getToLevel())
-                    && "PENDING".equals(initialStatus)) {
+                    && initialStatus == ApplicationStatus.PENDING) {
                 String requiredDegree = getRequiredDegreeForProgram(program);
                 if (requiredDegree != null && !hasCompletedDegree(student, requiredDegree)) {
-                    appStatus = "REJECTED";
+                    appStatus = ApplicationStatus.REJECTED;
                     LOG.info("Student '{}' lacks {} degree — rejected for program '{}'",
                         student.getUsername(), requiredDegree, program.getName());
                 }
@@ -360,9 +360,9 @@ public class AdmissionService {
             app.setProgram(program);
             app.setPriority(choice.priority());
             app.setGpaSnapshot(gpaResult.gpa());
-            app.setStatus(appStatus);
+            app.setStatus(appStatus.name());
             app.setSubmittedAt(LocalDateTime.now());
-            if (!"PENDING".equals(appStatus)) {
+            if (appStatus != ApplicationStatus.PENDING) {
                 app.setProcessedAt(LocalDateTime.now()); // Auto-processed
             }
 
@@ -388,18 +388,65 @@ public class AdmissionService {
     public void withdrawApplication(int applicationId, int studentId) {
         List<Application> apps = admissionDao.findApplicationsByStudent(studentId);
         Application app = apps.stream().filter(a -> a.getId() == applicationId).findFirst()
-            .orElseThrow(() -> new NotFoundException("Application not found"));
+            .orElseThrow(() -> new NotFoundException("Søknad ikke funnet"));
 
-        if ("WITHDRAWN".equals(app.getStatus()))
-            throw new ValidationException("Already withdrawn");
+        ApplicationStatus status = ApplicationStatus.fromString(app.getStatus());
+        if (status == ApplicationStatus.WITHDRAWN)
+            throw new ValidationException("Søknaden er allerede trukket");
+        if (status == ApplicationStatus.CONFIRMED)
+            throw new ValidationException("Kan ikke trekke en bekreftet søknad");
+        if (status == ApplicationStatus.ENROLLED)
+            throw new ValidationException("Kan ikke trekke en innmeldt søknad");
+        if (status == ApplicationStatus.REJECTED)
+            throw new ValidationException("Kan ikke trekke en avslått søknad");
 
-        // Can only withdraw if period is still open or if accepted, can give up spot
-        app.setStatus("WITHDRAWN");
+        app.setStatus(ApplicationStatus.WITHDRAWN.name());
         app.setProcessedAt(LocalDateTime.now());
         admissionDao.saveApplication(app);
 
         LOG.info("Student {} withdrew application {} for program '{}'",
             studentId, applicationId, app.getProgram().getName());
+    }
+
+    /**
+     * Confirm an accepted application.
+     * Sets this application to CONFIRMED and auto-withdraws all other ACCEPTED applications
+     * for the same student across all periods. This ensures a student can only be enrolled
+     * at one institution.
+     *
+     * Uses batch transaction (updateApplications) to ensure atomicity — either ALL
+     * status changes succeed, or NONE do.
+     */
+    public void confirmApplication(int applicationId, int studentId) {
+        List<Application> allApps = admissionDao.findApplicationsByStudent(studentId);
+        Application target = allApps.stream().filter(a -> a.getId() == applicationId).findFirst()
+            .orElseThrow(() -> new NotFoundException("Søknad ikke funnet"));
+
+        if (!ApplicationStatus.ACCEPTED.name().equals(target.getStatus()))
+            throw new ValidationException("Kan bare bekrefte aksepterte søknader");
+
+        // Confirm the chosen application
+        target.setStatus(ApplicationStatus.CONFIRMED.name());
+        target.setProcessedAt(LocalDateTime.now());
+
+        // Auto-withdraw all other ACCEPTED applications for this student
+        List<Application> changed = new ArrayList<>();
+        changed.add(target);
+        int withdrawn = 0;
+        for (Application other : allApps) {
+            if (other.getId() != applicationId && ApplicationStatus.ACCEPTED.name().equals(other.getStatus())) {
+                other.setStatus(ApplicationStatus.WITHDRAWN.name());
+                other.setProcessedAt(LocalDateTime.now());
+                changed.add(other);
+                withdrawn++;
+            }
+        }
+
+        // Save all changes in a single atomic transaction
+        admissionDao.updateApplications(changed);
+
+        LOG.info("Student {} confirmed application {} for program '{}'. {} other offers auto-withdrawn.",
+            studentId, applicationId, target.getProgram().getName(), withdrawn);
     }
 
     // ========================================================================
@@ -476,7 +523,7 @@ public class AdmissionService {
 
             // Get all apps at this priority, sort by GPA descending (highest first)
             List<Application> prioApps = allApps.stream()
-                .filter(a -> a.getPriority() == currentPrio && "PENDING".equals(a.getStatus()))
+                .filter(a -> a.getPriority() == currentPrio && ApplicationStatus.PENDING.name().equals(a.getStatus()))
                 .sorted(Comparator.comparingDouble((Application a) ->
                     a.getGpaSnapshot() != null ? a.getGpaSnapshot() : 0.0).reversed())
                 .toList();
@@ -487,7 +534,7 @@ public class AdmissionService {
 
                 // Skip if already accepted at a higher-priority choice
                 if (acceptedStudents.contains(studentId)) {
-                    app.setStatus("WITHDRAWN");
+                    app.setStatus(ApplicationStatus.WITHDRAWN.name());
                     app.setProcessedAt(LocalDateTime.now());
                     continue;
                 }
@@ -495,7 +542,7 @@ public class AdmissionService {
                 AdmissionRequirement req = reqMap.get(programId);
                 if (req == null) {
                     // No requirements set for this program → reject this application
-                    app.setStatus("REJECTED");
+                    app.setStatus(ApplicationStatus.REJECTED.name());
                     app.setProcessedAt(LocalDateTime.now());
                     rejected++;
                     continue;
@@ -505,7 +552,7 @@ public class AdmissionService {
 
                 // Check minimum GPA — if below, reject and don't try lower choices
                 if (req.getMinGpa() != null && gpa < req.getMinGpa()) {
-                    app.setStatus("REJECTED");
+                    app.setStatus(ApplicationStatus.REJECTED.name());
                     app.setProcessedAt(LocalDateTime.now());
                     rejected++;
                     continue;
@@ -517,14 +564,14 @@ public class AdmissionService {
                 if (req.getMaxStudents() != null && currentCount >= req.getMaxStudents()) {
                     // Leave as PENDING — will be tried at next priority level
                     // Mark this specific app as capacity-blocked (but not the student)
-                    app.setStatus("WAITLISTED");
+                    app.setStatus(ApplicationStatus.WAITLISTED.name());
                     app.setProcessedAt(LocalDateTime.now());
                     // Don't add to acceptedStudents — they should try next choice
                     continue;
                 }
 
                 // Accept! Student gets this spot
-                app.setStatus("ACCEPTED");
+                app.setStatus(ApplicationStatus.ACCEPTED.name());
                 app.setProcessedAt(LocalDateTime.now());
                 acceptedCounts.merge(programId, 1, Integer::sum);
                 acceptedStudents.add(studentId);
@@ -532,8 +579,8 @@ public class AdmissionService {
 
                 // Withdraw all other pending applications from this student
                 for (Application other : allApps) {
-                    if (other.getStudent().getId() == studentId && other != app && "PENDING".equals(other.getStatus())) {
-                        other.setStatus("WITHDRAWN");
+                    if (other.getStudent().getId() == studentId && other != app && ApplicationStatus.PENDING.name().equals(other.getStatus())) {
+                        other.setStatus(ApplicationStatus.WITHDRAWN.name());
                         other.setProcessedAt(LocalDateTime.now());
                     }
                 }
@@ -542,10 +589,10 @@ public class AdmissionService {
 
         // Count final waitlisted (students who were capacity-blocked on all their choices)
         for (Application app : allApps) {
-            if ("WAITLISTED".equals(app.getStatus())) {
+            if (ApplicationStatus.WAITLISTED.name().equals(app.getStatus())) {
                 // Check if this student was accepted elsewhere
                 if (acceptedStudents.contains(app.getStudent().getId())) {
-                    app.setStatus("WITHDRAWN");
+                    app.setStatus(ApplicationStatus.WITHDRAWN.name());
                     app.setProcessedAt(LocalDateTime.now());
                 } else {
                     waitlisted++;
@@ -570,8 +617,8 @@ public class AdmissionService {
     // ========================================================================
 
     /**
-     * Enroll all ACCEPTED students from a processed admission period into their programs.
-     * Each accepted student is:
+     * Enroll all CONFIRMED students from a processed admission period into their programs.
+     * Each confirmed student is:
      * 1. Transferred to the target institution (becomes a user of the new school)
      * 2. Added as a ProgramMember at the first year level
      * 3. Auto-enrolled in subjects matching that year level
@@ -579,15 +626,19 @@ public class AdmissionService {
      */
     public AdmissionDto.EnrollmentResult enrollAcceptedStudents(int periodId, int institutionId) {
         AdmissionPeriod period = admissionDao.find(periodId);
-        if (period == null || period.getInstitution().getId() != institutionId)
+        if (period == null || period.getInstitution().getId() != institutionId) {
+            LOG.error("enrollAccepted FAILED: periodId={}, callerInstId={}, period={}, periodInstId={}",
+                periodId, institutionId, period != null ? "found" : "NULL",
+                period != null && period.getInstitution() != null ? period.getInstitution().getId() : "null");
             throw new NotFoundException("Period not found");
+        }
 
         List<Application> allApps = admissionDao.findApplicationsByPeriod(periodId);
-        List<Application> acceptedApps = allApps.stream()
-            .filter(a -> "ACCEPTED".equals(a.getStatus()))
+        List<Application> confirmedApps = allApps.stream()
+            .filter(a -> ApplicationStatus.CONFIRMED.name().equals(a.getStatus()))
             .toList();
 
-        if (acceptedApps.isEmpty()) {
+        if (confirmedApps.isEmpty()) {
             return new AdmissionDto.EnrollmentResult(0, 0, 0);
         }
 
@@ -597,7 +648,7 @@ public class AdmissionService {
         int enrolled = 0;
         int skipped = 0;
 
-        for (Application app : acceptedApps) {
+        for (Application app : confirmedApps) {
             User student = app.getStudent();
             Program program = programDao.findWithSubjects(app.getProgram().getId());
             if (program == null) {
@@ -612,29 +663,62 @@ public class AdmissionService {
                 continue;
             }
 
-            // Check that student is graduated (uteksaminert) from their current program
-            // e.g. 10. klasse students must be uteksaminert before transferring to VGS
             List<ProgramMember> currentMemberships = memberDao.findByUser(student.getId());
-            boolean isGraduated = currentMemberships.isEmpty(); // No memberships = no check needed
-            if (!currentMemberships.isEmpty()) {
-                // Check if the student is graduated from at least one program at their current institution
-                isGraduated = currentMemberships.stream()
-                    .filter(pm -> pm.getProgram().getInstitution() != null &&
-                            student.getInstitution() != null &&
-                            pm.getProgram().getInstitution().getId() == student.getInstitution().getId())
-                    .anyMatch(ProgramMember::isGraduated);
+
+            // Determine if this is a same-level transfer (e.g. VGS→VGS) or cross-level (ungdomsskole→VGS)
+            boolean isSameLevelTransfer = false;
+            if (student.getInstitution() != null && program.getInstitution() != null) {
+                String studentInstLevel = student.getInstitution().getLevel();
+                String targetInstLevel = program.getInstitution().getLevel();
+                isSameLevelTransfer = studentInstLevel != null && studentInstLevel.equals(targetInstLevel)
+                    && student.getInstitution().getId() != program.getInstitution().getId();
             }
-            if (!isGraduated) {
-                LOG.warn("Student '{}' is not graduated from current institution — cannot enroll in '{}'",
-                    student.getUsername(), program.getName());
-                skipped++;
-                continue;
+
+            // For cross-level transfers (e.g. ungdomsskole→VGS), require graduation
+            // For same-level transfers (e.g. VGS→VGS school change), allow without graduation
+            if (!isSameLevelTransfer) {
+                boolean isGraduated = currentMemberships.isEmpty();
+                if (!currentMemberships.isEmpty()) {
+                    isGraduated = currentMemberships.stream()
+                        .filter(pm -> pm.getProgram().getInstitution() != null &&
+                                student.getInstitution() != null &&
+                                pm.getProgram().getInstitution().getId() == student.getInstitution().getId())
+                        .anyMatch(ProgramMember::isGraduated);
+                }
+                if (!isGraduated) {
+                    LOG.warn("Student '{}' is not graduated from current institution — cannot enroll in '{}'",
+                        student.getUsername(), program.getName());
+                    skipped++;
+                    continue;
+                }
             }
 
             // --- Transfer student to the target institution ---
             Institution targetInst = program.getInstitution();
             if (targetInst != null && (student.getInstitution() == null ||
                     student.getInstitution().getId() != targetInst.getId())) {
+
+                // Store reference to previous institution for history access
+                if (student.getInstitution() != null) {
+                    student.setTransferredFromInstitutionId(student.getInstitution().getId());
+
+                    // Remove from old program memberships (keep graduated ones for records)
+                    int oldInstId = student.getInstitution().getId();
+                    for (ProgramMember pm : currentMemberships) {
+                        if (pm.getProgram().getInstitution() != null &&
+                                pm.getProgram().getInstitution().getId() == oldInstId &&
+                                !pm.isGraduated()) {
+                            memberDao.deleteMembership(pm.getProgram().getId(), student.getId());
+                        }
+                    }
+
+                    // Remove old subject assignments at previous institution
+                    assignmentDao.removeAllForUser(student.getUsername(), oldInstId);
+
+                    LOG.info("Cleaned up memberships and assignments for '{}' at old institution '{}'",
+                        student.getUsername(), student.getInstitution().getName());
+                }
+
                 student.setInstitution(targetInst);
                 userDao.update(student);
                 LOG.info("Transferred student '{}' to institution '{}' (ID={})",
@@ -657,7 +741,7 @@ public class AdmissionService {
             }
 
             // Update application status to ENROLLED
-            app.setStatus("ENROLLED");
+            app.setStatus(ApplicationStatus.ENROLLED.name());
             admissionDao.saveApplication(app);
 
             enrolled++;
@@ -668,7 +752,7 @@ public class AdmissionService {
         LOG.info("Enrollment complete for period '{}': {} enrolled, {} skipped",
             period.getName(), enrolled, skipped);
 
-        return new AdmissionDto.EnrollmentResult(enrolled, skipped, acceptedApps.size());
+        return new AdmissionDto.EnrollmentResult(enrolled, skipped, confirmedApps.size());
     }
 
 

@@ -155,4 +155,20 @@ public class ProgramMemberDao extends BaseDao<ProgramMember> {
             em.close();
         }
     }
+
+    /** Count active (non-graduated) students in a program. */
+    public int countActiveStudents(int programId) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            Long count = em.createQuery(
+                    "SELECT COUNT(pm) FROM ProgramMember pm " +
+                    "WHERE pm.program.id = :pid AND pm.role = 'STUDENT' AND pm.graduated = false",
+                    Long.class)
+                .setParameter("pid", programId)
+                .getSingleResult();
+            return count != null ? count.intValue() : 0;
+        } finally {
+            em.close();
+        }
+    }
 }

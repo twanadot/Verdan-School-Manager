@@ -120,10 +120,10 @@ const LEVEL_CONFIGS: Record<string, LevelConfig> = {
     addProgramLabel: 'Ny fagskolegrad',
   },
   UNIVERSITET: {
-    pageTitle: 'Degrees & Emner',
+    pageTitle: 'Grader & Emner',
     pageDescription: 'Administrer grader og emner for høyskole/universitet',
-    programLabel: 'Degree',
-    programLabelPlural: 'Degrees',
+    programLabel: 'Grad',
+    programLabelPlural: 'Grader',
     programPlaceholder: 'F.eks. Informatikk, Sykepleie...',
     yearOptions: [
       { value: 'BACHELOR_1', label: '1. år (Bachelor)', group: 'Bachelor' },
@@ -136,7 +136,7 @@ const LEVEL_CONFIGS: Record<string, LevelConfig> = {
       { value: 'PHD_3', label: '3. år (PhD)', group: 'Doktorgrad' },
     ],
     addSubjectLabel: 'Legg til emne',
-    addProgramLabel: 'Ny degree',
+    addProgramLabel: 'Ny grad',
   },
 };
 
@@ -369,9 +369,38 @@ export function SubjectsPage() {
                             Yrkesfag
                           </span>
                         )}
+                        {program.programType === 'BACHELOR' && (
+                          <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent">
+                            🎓 Bachelor
+                          </span>
+                        )}
+                        {program.programType === 'MASTER' && (
+                          <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-400/10 text-purple-400">
+                            📖 Master
+                          </span>
+                        )}
+                        {program.programType === 'PHD' && (
+                          <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400">
+                            🔬 Doktorgrad
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-text-muted">
                         {program.subjects.length} {program.subjects.length === 1 ? 'fag' : 'fag'}
+                        {' · '}
+                        {program.maxStudents ? (
+                          <span className={
+                            program.currentStudentCount >= program.maxStudents
+                              ? 'text-danger font-medium'
+                              : program.currentStudentCount >= program.maxStudents * 0.9
+                                ? 'text-warning font-medium'
+                                : 'text-success font-medium'
+                          }>
+                            {program.currentStudentCount}/{program.maxStudents} elever
+                          </span>
+                        ) : (
+                          <span>{program.currentStudentCount} elever</span>
+                        )}
                         {program.description ? ` · ${program.description}` : ''}
                       </p>
                     </div>
@@ -1058,6 +1087,7 @@ function ProgramFormModal({
 }) {
   const isEditing = !!program;
   const isVGS = config.yearOptions.some((o) => o.value === 'VG1');
+  const isUniversitet = instLevel === 'UNIVERSITET';
   const isUngdomsskole = instLevel === 'UNGDOMSSKOLE';
   const showAdvancedFields = !isUngdomsskole; // Admission reqs, prerequisites, attendance limits
   const [form, setForm] = useState<ProgramRequest>({
@@ -1068,7 +1098,7 @@ function ProgramFormModal({
     prerequisites: program?.prerequisites || '',
     attendanceRequired: program?.attendanceRequired ?? isVGS,
     minAttendancePct: program?.minAttendancePct ?? (isVGS ? 90 : null),
-    programType: program?.programType || (isVGS ? '' : null),
+    programType: program?.programType || ((isVGS || isUniversitet) ? '' : null),
   });
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
@@ -1109,6 +1139,12 @@ function ProgramFormModal({
     // Validate programType for VGS
     if (isVGS && !form.programType) {
       setError('Du må velge programtype (Studieforberedende eller Yrkesfag)');
+      setLoading(false);
+      return;
+    }
+    // Validate programType for University
+    if (isUniversitet && !form.programType) {
+      setError('Du må velge gradtype (Bachelor, Master eller Doktorgrad)');
       setLoading(false);
       return;
     }
@@ -1202,6 +1238,56 @@ function ProgramFormModal({
             </div>
           )}
 
+          {/* Degree type selector — Universitet only */}
+          {isUniversitet && (
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                Gradtype <span className="text-danger">*</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, programType: 'BACHELOR' })}
+                  className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                    form.programType === 'BACHELOR'
+                      ? 'bg-accent/15 border-accent text-accent ring-1 ring-accent/30'
+                      : 'bg-bg-input border-border text-text-secondary hover:bg-bg-hover'
+                  }`}
+                >
+                  🎓 Bachelor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, programType: 'MASTER' })}
+                  className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                    form.programType === 'MASTER'
+                      ? 'bg-purple-400/15 border-purple-400 text-purple-400 ring-1 ring-purple-400/30'
+                      : 'bg-bg-input border-border text-text-secondary hover:bg-bg-hover'
+                  }`}
+                >
+                  📖 Master
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, programType: 'PHD' })}
+                  className={`flex-1 px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                    form.programType === 'PHD'
+                      ? 'bg-amber-400/15 border-amber-400 text-amber-400 ring-1 ring-amber-400/30'
+                      : 'bg-bg-input border-border text-text-secondary hover:bg-bg-hover'
+                  }`}
+                >
+                  🔬 Doktorgrad
+                </button>
+              </div>
+              <p className="text-xs text-text-muted mt-1.5">
+                {form.programType === 'BACHELOR' && '3-årig bachelorgrad'}
+                {form.programType === 'MASTER' && '2-årig mastergrad (etter fullført bachelor)'}
+                {form.programType === 'PHD' && '3-årig doktorgrad (etter fullført master)'}
+                {!form.programType && 'Velg gradtype for denne utdanningen'}
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5">
               Beskrivelse (valgfri)
@@ -1222,22 +1308,47 @@ function ProgramFormModal({
               </p>
               <div className="flex gap-3 mb-3">
                 <div className="flex-1">
-                  <label className="block text-xs text-text-muted mb-1">Min. snittkarakter</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="1"
-                    max="6"
-                    value={form.minGpa ?? ''}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        minGpa: e.target.value ? parseFloat(e.target.value) : null,
-                      })
-                    }
-                    placeholder="Ingen"
-                    className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
-                  />
+                  <label className="block text-xs text-text-muted mb-1">
+                    Min. snittkarakter{' '}
+                    {isUniversitet && (form.programType === 'MASTER' || form.programType === 'PHD')
+                      ? '(A-F)'
+                      : '(1-6)'}
+                  </label>
+                  {isUniversitet && (form.programType === 'MASTER' || form.programType === 'PHD') ? (
+                    <select
+                      value={form.minGpa ?? ''}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          minGpa: e.target.value ? parseFloat(e.target.value) : null,
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
+                    >
+                      <option value="">Ingen</option>
+                      <option value="6">A</option>
+                      <option value="5">B</option>
+                      <option value="4">C</option>
+                      <option value="3">D</option>
+                      <option value="2">E</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="6"
+                      value={form.minGpa ?? ''}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          minGpa: e.target.value ? parseFloat(e.target.value) : null,
+                        })
+                      }
+                      placeholder="Ingen"
+                      className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
+                    />
+                  )}
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs text-text-muted mb-1">Maks plasser</label>
@@ -2154,7 +2265,7 @@ function MemberSection({
 function SubjectFormModal({
   subject,
   config,
-  instLevel: _instLevel,
+  instLevel,
   onClose,
   onSaved,
 }: {
@@ -2299,7 +2410,8 @@ function SubjectFormModal({
               </label>
               <select
                 value={form.yearLevel || ''}
-                onChange={(e) => setForm({ ...form, yearLevel: e.target.value })}
+                onChange={(e) => setForm({ ...form, yearLevel: e.target.value, program: '' })}
+                onChangeCapture={() => setSelectedProgramIds(new Set())}
                 required
                 className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus"
               >
@@ -2321,7 +2433,14 @@ function SubjectFormModal({
                 <span className="text-danger">*</span>
               </label>
               <div className="border border-border rounded-lg overflow-hidden max-h-40 overflow-y-auto">
-                {programs.map((p) => (
+                {programs
+                  .filter((p) => {
+                    // Only filter by yearLevel for ungdomsskole (classes like '8A', '9B')
+                    // VGS/fagskole/university programs are cross-year so no filtering needed
+                    if (!form.yearLevel || instLevel !== 'UNGDOMSSKOLE') return true;
+                    return p.name.startsWith(form.yearLevel);
+                  })
+                  .map((p) => (
                   <label
                     key={p.id}
                     className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors border-b border-border/30 last:border-b-0 ${

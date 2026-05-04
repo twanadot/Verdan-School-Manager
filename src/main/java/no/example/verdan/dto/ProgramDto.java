@@ -19,7 +19,7 @@ public final class ProgramDto {
                            Integer institutionId, String institutionName,
                            Double minGpa, Integer maxStudents, String prerequisites,
                            boolean attendanceRequired, Integer minAttendancePct,
-                           String programType,
+                           String programType, int currentStudentCount,
                            List<SubjectSummary> subjects) {}
 
     /** Lightweight subject info for embedding in program responses. */

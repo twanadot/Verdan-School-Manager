@@ -38,6 +38,7 @@ public class AdmissionApiController {
         app.post("/api/admissions/apply", this::apply);
         app.get("/api/admissions/my-applications", this::getMyApplications);
         app.put("/api/admissions/applications/{id}/withdraw", this::withdraw);
+        app.put("/api/admissions/applications/{id}/confirm", this::confirmApplication);
 
         // ── Admin endpoints ──
         app.get("/api/admissions/periods", this::getPeriods);
@@ -86,6 +87,13 @@ public class AdmissionApiController {
         int appId = Integer.parseInt(ctx.pathParam("id"));
         admissionService.withdrawApplication(appId, userId);
         ctx.json(ApiResponse.ok("Application withdrawn"));
+    }
+
+    private void confirmApplication(Context ctx) {
+        int userId = AuthMiddleware.getUserId(ctx);
+        int appId = Integer.parseInt(ctx.pathParam("id"));
+        admissionService.confirmApplication(appId, userId);
+        ctx.json(ApiResponse.ok("Application confirmed"));
     }
 
     // ── Admin ──

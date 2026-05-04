@@ -40,9 +40,11 @@ public class UserApiController {
         app.post("/api/users", this::create);
         app.put("/api/users/{id}", this::update);
         app.delete("/api/users/{id}", this::delete);
+        app.get("/api/users/{id}/transfer-history", this::getTransferHistory);
     }
 
-    /** GET /api/users – List all users (ADMIN or TEACHER). Supports ?role= filter. */
+    /** GET /api/users – List all users (ADMIN or TEACHER).
+     *  Supports ?role= filter and optional ?page=&size= pagination. */
     private void getAll(Context ctx) {
         AuthMiddleware.requireAdminOrTeacher(ctx);
         String roleParam = ctx.queryParam("role");
@@ -50,7 +52,20 @@ public class UserApiController {
         boolean isSuperAdmin = AuthMiddleware.isSuperAdmin(ctx);
         String callerRole = AuthMiddleware.getRole(ctx);
         String callerUsername = AuthMiddleware.getUsername(ctx);
-        ctx.json(ApiResponse.ok(userService.getAllUsers(roleParam, institutionId, isSuperAdmin, callerRole, callerUsername)));
+
+        // Optional server-side pagination: ?page=0&size=20
+        String pageParam = ctx.queryParam("page");
+        String sizeParam = ctx.queryParam("size");
+
+        if (pageParam != null && sizeParam != null && !isSuperAdmin && roleParam == null) {
+            // Paginated response
+            int page = Integer.parseInt(pageParam);
+            int size = Integer.parseInt(sizeParam);
+            ctx.json(ApiResponse.ok(userService.getAllUsersPaginated(institutionId, page, size)));
+        } else {
+            // Standard unpaginated response (backwards-compatible)
+            ctx.json(ApiResponse.ok(userService.getAllUsers(roleParam, institutionId, isSuperAdmin, callerRole, callerUsername)));
+        }
     }
 
     /** GET /api/users/{id} – Get user by ID. */
@@ -160,6 +175,13 @@ public class UserApiController {
         LOG.info("Batch delete by {}: {} of {} users deleted",
             AuthMiddleware.getUsername(ctx), deleted, req.ids().size());
         ctx.json(ApiResponse.ok(java.util.Map.of("deleted", deleted)));
+    }
+
+    /** GET /api/users/:id/transfer-history – Get grades and attendance from the student's previous institution. */
+    private void getTransferHistory(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
+        int userId = Integer.parseInt(ctx.pathParam("id"));
+        ctx.json(ApiResponse.ok(userService.getTransferHistory(userId)));
     }
 }
 

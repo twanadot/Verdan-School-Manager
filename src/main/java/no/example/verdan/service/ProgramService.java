@@ -91,23 +91,23 @@ public class ProgramService {
 
     public ProgramDto.Response getProgram(int id, int institutionId, boolean isSuperAdmin) {
         Program p = programDao.findWithSubjects(id);
-        if (p == null) throw new NotFoundException("Program not found");
+        if (p == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && p.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
         return toResponse(p);
     }
 
     public ProgramDto.Response createProgram(ProgramDto.Request req, int institutionId, boolean isSuperAdmin) {
         if (req.name() == null || req.name().isBlank())
-            throw new ValidationException("Program name is required");
+            throw new ValidationException("Programnavn er påkrevd");
 
         int targetInstId = (req.institutionId() != null && isSuperAdmin) ? req.institutionId() : institutionId;
         Institution inst = institutionDao.find(targetInstId);
-        if (inst == null) throw new ValidationException("Institution not found");
+        if (inst == null) throw new ValidationException("Institusjon ikke funnet");
 
         if (programDao.findByName(req.name(), targetInstId) != null) {
-            throw new ConflictException("A program with this name already exists in this institution");
+            throw new ConflictException("Et program med dette navnet finnes allerede i denne institusjonen");
         }
 
         Program program = new Program();
@@ -139,16 +139,16 @@ public class ProgramService {
 
     public ProgramDto.Response updateProgram(int id, ProgramDto.Request req, int institutionId, boolean isSuperAdmin) {
         Program existing = programDao.findWithSubjects(id);
-        if (existing == null) throw new NotFoundException("Program not found");
+        if (existing == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && existing.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         if (req.name() != null && !req.name().isBlank()) {
             if (!req.name().equalsIgnoreCase(existing.getName())) {
                 int instId = existing.getInstitution().getId();
                 if (programDao.findByName(req.name(), instId) != null) {
-                    throw new ConflictException("A program with this name already exists");
+                    throw new ConflictException("Et program med dette navnet finnes allerede");
                 }
             }
             existing.setName(InputValidator.sanitize(req.name()));
@@ -182,9 +182,9 @@ public class ProgramService {
 
     public void deleteProgram(int id, int institutionId, boolean isSuperAdmin) {
         Program existing = programDao.findWithSubjects(id);
-        if (existing == null) throw new NotFoundException("Program not found");
+        if (existing == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && existing.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         // Remove all members first
@@ -200,16 +200,16 @@ public class ProgramService {
 
     public void addSubjectToProgram(int programId, int subjectId, int institutionId, boolean isSuperAdmin) {
         Program program = programDao.findWithSubjects(programId);
-        if (program == null) throw new NotFoundException("Program not found");
+        if (program == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && program.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         Subject subject = subjectDao.find(subjectId);
-        if (subject == null) throw new NotFoundException("Subject not found");
+        if (subject == null) throw new NotFoundException("Fag ikke funnet");
 
         if (subject.getInstitution() != null && subject.getInstitution().getId() != program.getInstitution().getId()) {
-            throw new ValidationException("Subject does not belong to the same institution");
+            throw new ValidationException("Faget tilhører ikke samme institusjon som programmet");
         }
 
         programDao.addSubject(programId, subjectId);
@@ -231,9 +231,9 @@ public class ProgramService {
 
     public void removeSubjectFromProgram(int programId, int subjectId, int institutionId, boolean isSuperAdmin) {
         Program program = programDao.findWithSubjects(programId);
-        if (program == null) throw new NotFoundException("Program not found");
+        if (program == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && program.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         programDao.removeSubject(programId, subjectId);
@@ -247,9 +247,9 @@ public class ProgramService {
     /** Get all members of a program. */
     public ProgramDto.MembersResponse getMembers(int programId, int institutionId, boolean isSuperAdmin) {
         Program program = programDao.findWithSubjects(programId);
-        if (program == null) throw new NotFoundException("Program not found");
+        if (program == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && program.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         List<ProgramMember> all = memberDao.findByProgram(programId);
@@ -275,27 +275,27 @@ public class ProgramService {
     public ProgramDto.MemberResponse addMember(int programId, ProgramDto.MemberRequest req,
                                                 int institutionId, boolean isSuperAdmin) {
         Program program = programDao.findWithSubjects(programId);
-        if (program == null) throw new NotFoundException("Program not found");
+        if (program == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && program.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         User user = userDao.find(req.userId());
-        if (user == null) throw new NotFoundException("User not found");
+        if (user == null) throw new NotFoundException("Bruker ikke funnet");
 
         // Verify user belongs to same institution
         if (user.getInstitution() != null && user.getInstitution().getId() != program.getInstitution().getId()) {
-            throw new ValidationException("User does not belong to the same institution as this program");
+            throw new ValidationException("Brukeren tilhører ikke samme institusjon som programmet");
         }
 
         // Check already a member
         if (memberDao.findByProgramAndUser(programId, req.userId()) != null) {
-            throw new ConflictException("User is already a member of this program");
+            throw new ConflictException("Brukeren er allerede medlem av dette programmet");
         }
 
         String role = req.role() != null ? req.role().toUpperCase() : "STUDENT";
         if (!"STUDENT".equals(role) && !"TEACHER".equals(role)) {
-            throw new ValidationException("Role must be STUDENT or TEACHER");
+            throw new ValidationException("Rollen må være STUDENT eller TEACHER");
         }
 
         // Students can only be in ONE active program at a time
@@ -356,13 +356,13 @@ public class ProgramService {
      */
     public void removeMember(int programId, int userId, int institutionId, boolean isSuperAdmin) {
         Program program = programDao.findWithSubjects(programId);
-        if (program == null) throw new NotFoundException("Program not found");
+        if (program == null) throw new NotFoundException("Program ikke funnet");
         if (!isSuperAdmin && program.getInstitution().getId() != institutionId) {
-            throw new NotFoundException("Program not found");
+            throw new NotFoundException("Program ikke funnet");
         }
 
         ProgramMember existing = memberDao.findByProgramAndUser(programId, userId);
-        if (existing == null) throw new NotFoundException("Member not found in this program");
+        if (existing == null) throw new NotFoundException("Medlem ikke funnet i dette programmet");
 
         User user = existing.getUser();
         int instId = program.getInstitution().getId();
@@ -444,8 +444,8 @@ public class ProgramService {
     /** Archive a graduated student. */
     public void archiveStudent(int programId, int userId) {
         ProgramMember pm = memberDao.findByProgramAndUser(programId, userId);
-        if (pm == null) throw new NotFoundException("Member not found");
-        if (!pm.isGraduated()) throw new ValidationException("Only graduated students can be archived");
+        if (pm == null) throw new NotFoundException("Medlem ikke funnet");
+        if (!pm.isGraduated()) throw new ValidationException("Bare uteksaminerte elever kan arkiveres");
         pm.setArchived(true);
         memberDao.update(pm);
         LOG.info("Archived graduated student: userId={}, programId={}", userId, programId);
@@ -454,7 +454,7 @@ public class ProgramService {
     /** Restore an archived student back to the active graduated list. */
     public void restoreStudent(int programId, int userId) {
         ProgramMember pm = memberDao.findByProgramAndUser(programId, userId);
-        if (pm == null) throw new NotFoundException("Member not found");
+        if (pm == null) throw new NotFoundException("Medlem ikke funnet");
         pm.setArchived(false);
         memberDao.update(pm);
         LOG.info("Restored archived student: userId={}, programId={}", userId, programId);
@@ -557,9 +557,11 @@ public class ProgramService {
             .map(s -> new ProgramDto.SubjectSummary(s.getId(), s.getCode(), s.getName(), s.getYearLevel()))
             .toList();
 
+        int studentCount = memberDao.countActiveStudents(p.getId());
+
         return new ProgramDto.Response(p.getId(), p.getName(), p.getDescription(),
                 instId, instName, p.getMinGpa(), p.getMaxStudents(), p.getPrerequisites(),
-                p.isAttendanceRequired(), p.getMinAttendancePct(), p.getProgramType(), subjects);
+                p.isAttendanceRequired(), p.getMinAttendancePct(), p.getProgramType(), studentCount, subjects);
     }
 
     private ProgramDto.MemberResponse toMemberResponse(ProgramMember pm) {

@@ -66,7 +66,7 @@ public class GradeService {
     /** Get grade by ID. */
     public GradeDto.Response getGradeById(int id, int institutionId, boolean isSuperAdmin) {
         Grade grade = isSuperAdmin ? gradeDao.find(id) : gradeDao.find(id, institutionId);
-        if (grade == null) throw new NotFoundException("Grade not found or access denied");
+        if (grade == null) throw new NotFoundException("Karakter ikke funnet");
         return toResponse(grade);
     }
 
@@ -88,18 +88,18 @@ public class GradeService {
 
     public GradeDto.Response createGrade(GradeDto.Request req, String creatorUsername, String creatorRole, int institutionId) {
         if (!InputValidator.isNotBlank(req.studentUsername()))
-            throw new ValidationException("Student username is required");
+            throw new ValidationException("Du må velge en elev");
         if (!InputValidator.isNotBlank(req.subject()))
-            throw new ValidationException("Subject code is required");
+            throw new ValidationException("Du må velge et fag");
         if (!InputValidator.isNotBlank(req.value()))
-            throw new ValidationException("Grade value is required");
+            throw new ValidationException("Karakterverdi er påkrevd");
 
         // Validate grade value against subject level
         Subject subjectEntity = subjectDao.findByCode(req.subject(), institutionId);
         if (subjectEntity != null) {
             validateGradeForLevel(req.value(), subjectEntity.getLevel());
         } else if (gradeDao.parseGradeToDouble(req.value()) == null) {
-            throw new ValidationException("Invalid grade value. Use A-F or 1-6.");
+            throw new ValidationException("Ugyldig karakterverdi. Bruk A-F eller 1-6.");
         }
 
         // Block grade if student exceeds absence limit in this subject
@@ -111,7 +111,7 @@ public class GradeService {
 
         List<User> students = userDao.findByUsername(req.studentUsername(), institutionId);
         if (students.isEmpty())
-            throw new NotFoundException("Student not found in your institution");
+            throw new NotFoundException("Eleven ble ikke funnet i din institusjon");
 
         // Verify that the student is actually assigned to this subject (directly or via program)
         List<String> assignedSubjects = assignmentDao.subjectsForStudent(req.studentUsername(), institutionId);
@@ -121,11 +121,11 @@ public class GradeService {
             isAssigned = assignmentDao.isStudentAssignedViaProgram(req.studentUsername(), req.subject(), institutionId);
         }
         if (!isAssigned) {
-            throw new ValidationException("Student is not assigned to subject " + req.subject());
+            throw new ValidationException("Eleven er ikke tilknyttet faget " + req.subject());
         }
 
         if (gradeDao.hasGradeForStudentInSubject(req.studentUsername(), req.subject(), institutionId))
-            throw new ConflictException("Student already has a grade in this subject");
+            throw new ConflictException("Eleven har allerede en karakter i dette faget");
 
         // If created by an admin, attribute the grade to the subject's assigned teacher
         String finalTeacherUsername = creatorUsername;
@@ -183,7 +183,7 @@ public class GradeService {
     /** Update a grade. */
     public GradeDto.Response updateGrade(int id, GradeDto.Request req, int institutionId, boolean isSuperAdmin) {
         Grade existing = isSuperAdmin ? gradeDao.find(id) : gradeDao.find(id, institutionId);
-        if (existing == null) throw new NotFoundException("Grade not found or access denied");
+        if (existing == null) throw new NotFoundException("Karakter ikke funnet");
 
         // Handle retake (privatist): clear IV status and set new grade
         if (req.retake() != null && req.retake()) {
@@ -211,7 +211,7 @@ public class GradeService {
             if (subjectEntity != null) {
                 validateGradeForLevel(req.value(), subjectEntity.getLevel());
             } else if (gradeDao.parseGradeToDouble(req.value()) == null) {
-                throw new ValidationException("Invalid grade value");
+                throw new ValidationException("Ugyldig karakterverdi");
             }
             existing.setValue(InputValidator.sanitize(req.value()));
         }
@@ -237,7 +237,7 @@ public class GradeService {
     /** Delete a grade. */
     public void deleteGrade(int id, int institutionId, boolean isSuperAdmin) {
         Grade grade = isSuperAdmin ? gradeDao.find(id) : gradeDao.find(id, institutionId);
-        if (grade == null) throw new NotFoundException("Grade not found or access denied");
+        if (grade == null) throw new NotFoundException("Karakter ikke funnet");
         gradeDao.delete(grade);
         LOG.info("Grade deleted: ID={} in institution {}", id, institutionId);
     }
@@ -358,13 +358,13 @@ public class GradeService {
             try {
                 int num = Integer.parseInt(v);
                 if (num < 1 || num > 6)
-                    throw new ValidationException("Grade must be 1-6 for " + level);
+                    throw new ValidationException("Karakter må være 1-6 for " + level);
             } catch (NumberFormatException e) {
-                throw new ValidationException("Grade must be numeric (1-6) for " + level + ". Got: " + value);
+                throw new ValidationException("Karakter må være numerisk (1-6) for " + level + ". Fikk: " + value);
             }
         } else {
             if (!v.matches("[A-F]"))
-                throw new ValidationException("Grade must be A-F for " + level + ". Got: " + value);
+                throw new ValidationException("Karakter må være A-F for " + level + ". Fikk: " + value);
         }
     }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -98,6 +98,12 @@ export function UsersPage() {
     mutationFn: deleteUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['subjectMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      queryClient.invalidateQueries({ queryKey: ['programMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
       toast.success('Bruker slettet');
       setDeleteTarget(null);
     },
@@ -174,12 +180,14 @@ export function UsersPage() {
         description="Administrer brukere i din institusjon"
         action={
           <div className="flex gap-2">
+            {currentUser?.institutionLevel === 'UNGDOMSSKOLE' && (
             <button
               onClick={() => setShowImport(true)}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Upload size={16} /> Importer elever
             </button>
+            )}
             <button
               onClick={() => {
                 setEditingUser(null);
@@ -220,7 +228,7 @@ export function UsersPage() {
       {filtered.length === 0 ? (
         <EmptyState title="Ingen brukere funnet" message="Prøv å justere søket eller filteret" />
       ) : (
-        <div className="bg-bg-card border border-border rounded-xl overflow-hidden">
+        <div className="bg-bg-card border border-border rounded-xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-bg-primary/50 text-text-secondary text-left">
@@ -231,7 +239,6 @@ export function UsersPage() {
                 <th className="px-4 py-3 font-medium">E-post</th>
                 <th className="px-4 py-3 font-medium">Telefon</th>
                 <th className="px-4 py-3 font-medium">Rolle</th>
-                <th className="px-4 py-3 font-medium">Institusjon</th>
                 <th className="px-4 py-3 font-medium w-24">Handlinger</th>
               </tr>
             </thead>
@@ -244,6 +251,11 @@ export function UsersPage() {
                   <td className="px-4 py-3 font-medium text-text-primary">{user.username}</td>
                   <td className="px-4 py-3 text-text-secondary">
                     {user.firstName} {user.lastName}
+                    {user.transferredFromInstitutionName && (
+                      <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-info/10 text-info" title={`Overført fra ${user.transferredFromInstitutionName}`}>
+                        ↗ Overført
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
                     {user.gender === 'MALE' ? 'Mann' : user.gender === 'FEMALE' ? 'Kvinne' : '—'}
@@ -252,9 +264,6 @@ export function UsersPage() {
                   <td className="px-4 py-3 text-text-secondary">{user.email || '—'}</td>
                   <td className="px-4 py-3 text-text-secondary">{user.phone || '—'}</td>
                   <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                  <td className="px-4 py-3 text-accent font-medium">
-                    {user.institutionName || 'Default'}
-                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <button
@@ -621,6 +630,13 @@ function UserFormModal({
     birthDate: user?.birthDate || '',
     institutionId: user?.institutionId || currentUser?.institutionId,
   });
+
+  // When institutions load, default to the first one if no institutionId is set (SUPER_ADMIN)
+  useEffect(() => {
+    if (!form.institutionId && institutions.length > 0) {
+      setForm((prev) => ({ ...prev, institutionId: institutions[0].id }));
+    }
+  }, [institutions]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -882,6 +898,11 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
       const res = await importStudents(file);
       setResult(res);
       if (res.created > 0) toast.success(`${res.created} elever importert!`);
+      if (res.errors.length > 0 && res.created === 0) {
+        toast.error(`Import avvist: ${res.errors.length} feil funnet. Se detaljer i dialogen.`);
+      } else if (res.errors.length > 0) {
+        toast.warning(`${res.created} importert, men ${res.errors.length} rader hadde feil.`);
+      }
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Import feilet';
       setError(msg);

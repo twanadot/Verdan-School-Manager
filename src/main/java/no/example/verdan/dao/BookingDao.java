@@ -296,4 +296,31 @@ public class BookingDao extends BaseDao<Booking> {
             em.close();
         }
     }
+
+    /**
+     * Delete multiple bookings in a single transaction (batch).
+     */
+    public void deleteBookingsBatch(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return;
+
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+            for (Integer id : ids) {
+                Booking managed = em.find(Booking.class, id);
+                if (managed != null) {
+                    managed.getRooms().clear();
+                    em.remove(managed);
+                }
+            }
+            tx.commit();
+        } catch (RuntimeException ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
+    }
 }

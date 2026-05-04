@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -38,28 +38,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Wait for MySQL to be ready
-        run: |
-          for i in {1..30}; do
-            if mysqladmin ping -h 127.0.0.1 -u root -ptestpass --silent 2>/dev/null; then
-              echo "MySQL is ready!"
-              break
-            fi
-            echo "Waiting for MySQL... ($i/30)"
-            sleep 2
-          done
-
-      - name: Build (compile + package)
-        run: chmod +x mvnw && ./mvnw clean package -B -DskipTests
-        env:
-          DB_HOST: 127.0.0.1
-          DB_USER: root
-          DB_PASS: testpass
-          JWT_SECRET: ci-test-secret-do-not-use-in-production
-          MYSQL_SSL: "false"
-
-      - name: Run tests
-        run: ./mvnw test -B
+      - name: Build & Test
+        run: chmod +x mvnw && ./mvnw clean verify -B
         env:
           DB_HOST: 127.0.0.1
           DB_USER: root
@@ -107,20 +87,52 @@ jobs:
         run: npm run build
 
   # ═══════════════════════════════════════════════
-  # Docker: Verify images build successfully
+  # Deploy: Docker Hub + EC2 (kun ved push til main)
   # ═══════════════════════════════════════════════
-  docker:
-    name: Docker Build
+  deploy:
+    name: Deploy to Production
     needs: [backend, frontend]
-    if: always() && needs.frontend.result == 'success'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build API image
-        run: docker build -t verdan-api:ci .
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Web image
-        run: docker build -t verdan-web:ci ./verdan-web
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/verdan-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/verdan-api:${{ github.sha }}
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./verdan-web
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/verdan-web:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/verdan-web:${{ github.sha }}
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd /home/ec2-user
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
+            docker image prune -f
+            sleep 5
+            docker ps
