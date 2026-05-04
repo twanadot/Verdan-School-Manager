@@ -2,7 +2,7 @@
 
 **Verdan** er et omfattende skoleadministrasjonssystem med en **React web-app** koblet til et **REST API** drevet av Javalin, med **MySQL** for persistens. Systemet støtter flere institusjoner med ulike utdanningsnivåer (universitet, fagskole, VGS, ungdomsskole).
 
-## 🚀 Nøkkelfunksjoner
+## Nøkkelfunksjoner
 
 * **Multi-institusjons støtte:** Administrer flere skoler/universiteter fra ett system med institusjonsisolering.
 * **Rollebasert tilgangskontroll (RBAC):** Fire roller — Super Admin, Institusjonsadmin, Lærer og Elev — med distinkte grensesnitt og rettigheter.
@@ -135,7 +135,7 @@ Systemet kommer forhåndslastet med følgende brukere for testing:
 
 Base URL: `http://localhost:8081` (Docker) / `http://localhost:8080` (lokal)
 
-📖 **Full interaktiv API-dokumentasjon:** [http://localhost:8081/swagger](http://localhost:8081/swagger)
+**Full interaktiv API-dokumentasjon:** [http://localhost:8081/swagger](http://localhost:8081/swagger)
 
 | Metode | Endepunkt | Beskrivelse | Tilgang |
 | :--- | :--- | :--- | :--- |
