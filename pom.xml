@@ -106,18 +106,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.rest-assured</groupId>
-      <artifactId>rest-assured</artifactId>
-      <version>5.5.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.javalin</groupId>
       <artifactId>javalin-testtools</artifactId>
       <version>${javalin.version}</version>
       <scope>test</scope>
     </dependency>
-
     <!-- Apache POI for Excel/CSV import -->
     <dependency>
       <groupId>org.apache.poi</groupId>

@@ -34,7 +34,7 @@
 | **WebSocket** | Javalin WebSocket (sanntidschat) |
 | **Filhåndtering** | Apache POI (Excel/CSV-import) |
 | **Logging** | SLF4J / Logback med MDC |
-| **Testing** | JUnit 5, Mockito, REST Assured, Javalin TestTools |
+| **Testing** | JUnit 5, Mockito, JaCoCo (code coverage), Javalin TestTools |
 
 ### Frontend (Web)
 | Teknologi | Versjon |
@@ -54,9 +54,11 @@
 | Teknologi | Bruk |
 |---|---|
 | **Docker** | Multi-stage builds for API og frontend |
+| **Docker Hub** | Container image-register for produksjons-images |
 | **Nginx** | Reverse proxy for produksjons-frontend |
-| **GitHub Actions** | CI-pipeline (backend test, frontend typecheck, Docker build) |
-| **AWS RDS** | MySQL-database i produksjon |
+| **GitHub Actions** | CI/CD-pipeline (test, bygg, Docker Hub push, EC2 auto-deploy) |
+| **AWS EC2** | Produksjonsserver (eu-west-1) |
+| **AWS RDS** | MySQL-database i produksjon (eu-west-1) |
 
 ## Installasjon og oppsett
 

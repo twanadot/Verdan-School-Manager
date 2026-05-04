@@ -77,7 +77,7 @@ Java 21 / Maven backend exposing a Javalin REST API backed by Hibernate + MySQL,
 Backend (run from repo root):
 - `mvn compile exec:java` — start the REST API. Main class is `no.example.verdan.api.ApiServer` (configured via `exec.mainClass` in `pom.xml`).
 - `mvn package` — builds jar and copies runtime deps to `target/lib/` (used by `Dockerfile`).
-- `mvn test` — runs JUnit 5 / Mockito / RestAssured tests. Note: `src/test/java` does not currently exist in the tree, so `mvn test` is a no-op until tests are added back.
+- `mvn test` — runs JUnit 5 / Mockito / JaCoCo tests (108 tests across 6 test classes).
 
 Frontend (run from `verdan-web/`):
 - `npm install` then `npm run dev` — Vite dev server.
