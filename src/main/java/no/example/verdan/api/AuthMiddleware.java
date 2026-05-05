@@ -88,8 +88,9 @@ public class AuthMiddleware {
                     }
                 } catch (UnauthorizedResponse ur) {
                     throw ur; // re-throw auth failures
-                } catch (Exception ex) {
-                    // DB unavailable – allow request through; deactivation is a soft check
+                } catch (Throwable ex) {
+                    // DB unavailable (ExceptionInInitializerError when HibernateUtil
+                    // can't load, or PersistenceException) – allow request through
                     LOG.debug("Could not check institution status: {}", ex.getMessage());
                 }
             }

@@ -130,7 +130,7 @@ public class AuthApiController {
                     ctx.status(403).json(ApiResponse.error("Din institusjon er deaktivert. Kontakt systemadministrator."));
                     return;
                 }
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 LOG.debug("Could not check institution status during refresh: {}", ex.getMessage());
             }
         }
