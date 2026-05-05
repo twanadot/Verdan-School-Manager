@@ -1,5 +1,7 @@
 # Verdan Skoleadministrasjon
 
+> **Live demo:** [http://54.75.32.234](http://54.75.32.234) — Deployet på AWS (EC2 + RDS)
+
 **Verdan** er et omfattende skoleadministrasjonssystem med en **React web-app** koblet til et **REST API** drevet av Javalin, med **MySQL** for persistens. Systemet støtter flere institusjoner med ulike utdanningsnivåer (universitet, fagskole, VGS, ungdomsskole).
 
 ## Nøkkelfunksjoner
