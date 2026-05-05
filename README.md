@@ -234,7 +234,7 @@ erDiagram
     }
 
     UserStatus {
-        Integer user_id PK_FK
+        Integer user_id PK "FK til User"
         LocalDateTime lastSeen
     }
 
