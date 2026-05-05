@@ -5,20 +5,21 @@
 ## Nøkkelfunksjoner
 
 * **Multi-institusjons støtte:** Administrer flere skoler/universiteter fra ett system med institusjonsisolering.
+* **Institusjonsdeaktivering:** Super Admin kan deaktivere institusjoner. Ansatte blokkeres automatisk, mens elever beholder tilgang til opptaksportalen for overføring.
 * **Rollebasert tilgangskontroll (RBAC):** Fire roller — Super Admin, Institusjonsadmin, Lærer og Elev — med distinkte grensesnitt og rettigheter.
-* **Brukeradministrasjon:** Komplett system for å opprette, redigere og administrere brukere med batch-import (Excel/CSV).
+* **Brukeradministrasjon:** Komplett system for å opprette, redigere og administrere brukere med batch-import og batch-overføring (Excel/CSV).
 * **Programstyring:** Opprett studieprogram/klasser, administrer medlemskap, og håndter nivåopprykk.
 * **Fagstyring:** Opprett og administrer fag med fagtildelinger for lærere og elever.
 * **Karaktersystem:** Lærere registrerer karakterer; elever ser sin egen akademiske progresjon.
 * **Fraværsregistrering:** Registrer og spor fravær per fag, med konfigurerbare fraværsgrenser og fraværsbarometer.
 * **Rom- og bookingadministrasjon:** Administrer klasserom og planlegg timer med ukentlig kalendervisning og konfliktdeteksjon.
-* **Opptaksportal:** Felles søknadsportal med opptaksperioder, krav og søknadsbehandling.
+* **Opptaksportal:** Felles søknadsportal med opptaksperioder, krav, søknadsbehandling og gjenåpning med ny frist.
 * **Elevportal:** Delt plattform med mappestruktur, filinnleveringer, kunngjøringer og kommentarer.
 * **Sanntidschat:** WebSocket-basert meldingssystem med chattegrupper, fil-vedlegg og reaksjoner.
 * **Rapportering:** Oversikt over uteksaminerte elever med arkivering og gjenoppretting (CSV-eksport).
 * **REST API:** Full CRUD med JWT-autentisering, refresh-tokens og rate limiting.
 * **API-dokumentasjon:** Interaktiv Swagger UI på `/swagger`.
-* **CI/CD-pipeline:** Automatisert bygg, test og Docker-verifisering via GitHub Actions.
+* **CI/CD-pipeline:** Automatisert bygg, test (108 tester) og deploy via GitHub Actions til AWS.
 
 ## Teknologi
 
@@ -144,6 +145,8 @@ Base URL: `http://localhost:8081` (Docker) / `http://localhost:8080` (lokal)
 | GET | `/api/health` | Helsesjekk | Offentlig |
 | GET | `/api/openapi.json` | OpenAPI 3.0-spesifikasjon | Offentlig |
 | GET/POST/PUT/DELETE | `/api/users` | Brukeradministrasjon | ADMIN |
+| POST | `/api/users/import` | Batch-import elever (CSV/Excel) | ADMIN |
+| POST | `/api/users/transfer` | Batch-overføring elever (CSV/Excel) | ADMIN |
 | GET/POST/PUT/DELETE | `/api/institutions` | Institusjonsadministrasjon | SUPER_ADMIN |
 | GET/POST/PUT/DELETE | `/api/subjects` | Fagstyring | ADMIN (skriv) |
 | GET/POST/PUT/DELETE | `/api/grades` | Karakterhåndtering | ADMIN/TEACHER |
