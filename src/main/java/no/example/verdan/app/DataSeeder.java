@@ -169,35 +169,51 @@ public class DataSeeder {
         try {
             tx.begin();
 
-            // Find unique indexes that ONLY cover room_number (not composite ones)
-            List<String> singleColIndexes = em.createNativeQuery(
-                "SELECT s1.INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS s1 " +
-                "WHERE s1.TABLE_SCHEMA = DATABASE() " +
-                "  AND s1.TABLE_NAME = 'rooms' " +
-                "  AND s1.NON_UNIQUE = 0 " +
-                "  AND s1.INDEX_NAME != 'PRIMARY' " +
-                "  AND s1.COLUMN_NAME = 'room_number' " +
-                "  AND s1.INDEX_NAME NOT IN (" +
-                "    SELECT s2.INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS s2 " +
-                "    WHERE s2.TABLE_SCHEMA = DATABASE() " +
-                "      AND s2.TABLE_NAME = 'rooms' " +
-                "      AND s2.COLUMN_NAME != 'room_number'" +
-                "  )"
+            // List ALL unique indexes on rooms table for debugging
+            List<Object[]> allIndexes = em.createNativeQuery(
+                "SELECT INDEX_NAME, COLUMN_NAME, SEQ_IN_INDEX " +
+                "FROM INFORMATION_SCHEMA.STATISTICS " +
+                "WHERE TABLE_SCHEMA = DATABASE() " +
+                "  AND TABLE_NAME = 'rooms' " +
+                "  AND NON_UNIQUE = 0 " +
+                "  AND INDEX_NAME != 'PRIMARY' " +
+                "ORDER BY INDEX_NAME, SEQ_IN_INDEX"
             ).getResultList();
 
-            for (String indexName : singleColIndexes) {
-                em.createNativeQuery("ALTER TABLE rooms DROP INDEX `" + indexName + "`").executeUpdate();
-                LOG.info("Dropped legacy unique index '{}' on rooms.room_number", indexName);
+            LOG.info("Room table indexes found: {}", allIndexes.size());
+            // Group by index name: track which columns each index covers
+            java.util.Map<String, java.util.List<String>> indexColumns = new java.util.LinkedHashMap<>();
+            for (Object[] row : allIndexes) {
+                String idxName = (String) row[0];
+                String colName = (String) row[1];
+                indexColumns.computeIfAbsent(idxName, k -> new java.util.ArrayList<>()).add(colName);
+                LOG.info("  Index: {} -> column: {} (seq: {})", idxName, colName, row[2]);
             }
 
-            if (singleColIndexes.isEmpty()) {
-                LOG.debug("No legacy room_number unique constraint found (already migrated)");
+            // Drop single-column indexes that are on the room number column
+            // (matches both 'room_number' and 'roomNumber' naming conventions)
+            int dropped = 0;
+            for (var entry : indexColumns.entrySet()) {
+                String idxName = entry.getKey();
+                java.util.List<String> cols = entry.getValue();
+                if (cols.size() == 1) {
+                    String col = cols.get(0).toLowerCase();
+                    if (col.contains("room") && (col.contains("number") || col.contains("num"))) {
+                        em.createNativeQuery("ALTER TABLE rooms DROP INDEX `" + idxName + "`").executeUpdate();
+                        LOG.info("Dropped legacy unique index '{}' (column: {})", idxName, cols.get(0));
+                        dropped++;
+                    }
+                }
+            }
+
+            if (dropped == 0) {
+                LOG.info("No legacy single-column room number constraint found (already migrated or not present)");
             }
 
             tx.commit();
         } catch (Exception ex) {
             if (tx.isActive()) tx.rollback();
-            LOG.warn("Could not drop legacy room constraint: {}", ex.getMessage());
+            LOG.warn("Could not drop legacy room constraint: {}", ex.getMessage(), ex);
         } finally {
             em.close();
         }
