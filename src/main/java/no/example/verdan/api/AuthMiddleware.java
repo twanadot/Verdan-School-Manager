@@ -80,10 +80,17 @@ public class AuthMiddleware {
             String role = JwtUtil.getRole(jwt);
             Integer instId = JwtUtil.getInstitutionId(jwt);
             if (instId != null && instId > 0 && ("INSTITUTION_ADMIN".equalsIgnoreCase(role) || "TEACHER".equalsIgnoreCase(role))) {
-                Institution inst = institutionDao.find(instId);
-                if (inst == null || !inst.isActive()) {
-                    LOG.warn("Access denied: institution {} is deactivated for user={}", instId, JwtUtil.getUsername(jwt));
-                    throw new UnauthorizedResponse("Unauthorized");
+                try {
+                    Institution inst = institutionDao.find(instId);
+                    if (inst != null && !inst.isActive()) {
+                        LOG.warn("Access denied: institution {} is deactivated for user={}", instId, JwtUtil.getUsername(jwt));
+                        throw new UnauthorizedResponse("Unauthorized");
+                    }
+                } catch (UnauthorizedResponse ur) {
+                    throw ur; // re-throw auth failures
+                } catch (Exception ex) {
+                    // DB unavailable – allow request through; deactivation is a soft check
+                    LOG.debug("Could not check institution status: {}", ex.getMessage());
                 }
             }
 

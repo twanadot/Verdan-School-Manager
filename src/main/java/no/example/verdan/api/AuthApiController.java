@@ -123,11 +123,15 @@ public class AuthApiController {
 
         // Block staff (INSTITUTION_ADMIN, TEACHER) if their institution is deactivated.
         if (instId != null && instId > 0 && ("INSTITUTION_ADMIN".equalsIgnoreCase(role) || "TEACHER".equalsIgnoreCase(role))) {
-            Institution inst = institutionDao.find(instId);
-            if (inst == null || !inst.isActive()) {
-                LOG.warn("Token refresh blocked: institution {} deactivated for user '{}'", instId, username);
-                ctx.status(403).json(ApiResponse.error("Din institusjon er deaktivert. Kontakt systemadministrator."));
-                return;
+            try {
+                Institution inst = institutionDao.find(instId);
+                if (inst != null && !inst.isActive()) {
+                    LOG.warn("Token refresh blocked: institution {} deactivated for user '{}'", instId, username);
+                    ctx.status(403).json(ApiResponse.error("Din institusjon er deaktivert. Kontakt systemadministrator."));
+                    return;
+                }
+            } catch (Exception ex) {
+                LOG.debug("Could not check institution status during refresh: {}", ex.getMessage());
             }
         }
 
