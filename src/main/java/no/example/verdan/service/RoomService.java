@@ -70,7 +70,15 @@ public class RoomService {
         inst.setId(targetInstId);
         room.setInstitution(inst);
 
-        roomDao.save(room);
+        try {
+            roomDao.save(room);
+        } catch (Exception ex) {
+            // Catch DB constraint violations (e.g. legacy unique index on room_number)
+            if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("duplicate")) {
+                throw new ConflictException("Et rom med dette nummeret finnes allerede");
+            }
+            throw ex;
+        }
         LOG.info("Room created: {} ({}) for institution {}", room.getRoomNumber(), room.getRoomType(), inst.getId());
         return toResponse(room);
     }

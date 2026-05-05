@@ -160,10 +160,7 @@ public class DataSeeder {
      * Drop the legacy global unique constraint on rooms.room_number.
      * The new composite constraint (room_number + institution_id) is created
      * automatically by Hibernate hbm2ddl=update from the @UniqueConstraint annotation.
-     * This migration only needs to run once; IF EXISTS makes it safe to repeat.
-     *
-     * Hibernate generates random constraint names (e.g. UKb22fgh80...), so we
-     * dynamically look up any single-column unique index on room_number and drop it.
+     * This migration only needs to run once; it is safe to repeat.
      */
     @SuppressWarnings("unchecked")
     private void dropLegacyRoomConstraint() {
@@ -172,32 +169,29 @@ public class DataSeeder {
         try {
             tx.begin();
 
-            // Find all unique index names on the rooms table
-            List<Object[]> indexes = em.createNativeQuery(
-                "SELECT DISTINCT INDEX_NAME, COUNT(*) AS col_count " +
-                "FROM INFORMATION_SCHEMA.STATISTICS " +
-                "WHERE TABLE_SCHEMA = DATABASE() " +
-                "  AND TABLE_NAME = 'rooms' " +
-                "  AND NON_UNIQUE = 0 " +
-                "  AND INDEX_NAME != 'PRIMARY' " +
-                "GROUP BY INDEX_NAME " +
-                "HAVING col_count = 1"
+            // Find unique indexes that ONLY cover room_number (not composite ones)
+            List<String> singleColIndexes = em.createNativeQuery(
+                "SELECT s1.INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS s1 " +
+                "WHERE s1.TABLE_SCHEMA = DATABASE() " +
+                "  AND s1.TABLE_NAME = 'rooms' " +
+                "  AND s1.NON_UNIQUE = 0 " +
+                "  AND s1.INDEX_NAME != 'PRIMARY' " +
+                "  AND s1.COLUMN_NAME = 'room_number' " +
+                "  AND s1.INDEX_NAME NOT IN (" +
+                "    SELECT s2.INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS s2 " +
+                "    WHERE s2.TABLE_SCHEMA = DATABASE() " +
+                "      AND s2.TABLE_NAME = 'rooms' " +
+                "      AND s2.COLUMN_NAME != 'room_number'" +
+                "  )"
             ).getResultList();
 
-            for (Object[] row : indexes) {
-                String indexName = (String) row[0];
-                // Check if this single-column index is on room_number
-                List<?> cols = em.createNativeQuery(
-                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS " +
-                    "WHERE TABLE_SCHEMA = DATABASE() " +
-                    "  AND TABLE_NAME = 'rooms' " +
-                    "  AND INDEX_NAME = '" + indexName + "'"
-                ).getResultList();
+            for (String indexName : singleColIndexes) {
+                em.createNativeQuery("ALTER TABLE rooms DROP INDEX `" + indexName + "`").executeUpdate();
+                LOG.info("Dropped legacy unique index '{}' on rooms.room_number", indexName);
+            }
 
-                if (cols.size() == 1 && "room_number".equals(cols.get(0))) {
-                    em.createNativeQuery("ALTER TABLE rooms DROP INDEX `" + indexName + "`").executeUpdate();
-                    LOG.info("Dropped legacy unique index '{}' on rooms.room_number", indexName);
-                }
+            if (singleColIndexes.isEmpty()) {
+                LOG.debug("No legacy room_number unique constraint found (already migrated)");
             }
 
             tx.commit();
