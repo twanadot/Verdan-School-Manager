@@ -167,7 +167,7 @@ Base URL: `http://localhost:8081` (Docker) / `http://localhost:8080` (lokal)
 
 ## Databasearkitektur
 
-Applikasjonen bruker en relasjonell databasemodell administrert av Hibernate ORM. Entitetene inkluderer:
+Applikasjonen bruker en relasjonell databasemodell administrert av Hibernate ORM med 22 entiteter. Alle kjerneentiteter er isolert per institusjon.
 
 ```mermaid
 erDiagram
@@ -175,22 +175,30 @@ erDiagram
     Institution ||--o{ Subject : "har"
     Institution ||--o{ Room : "har"
     Institution ||--o{ Program : "har"
+    Institution ||--o{ AdmissionPeriod : "har"
+    Institution ||--o{ SubjectAssignment : "har"
+    Institution ||--o{ Grade : "har"
+    Institution ||--o{ Attendance : "har"
+    Institution ||--o{ Booking : "har"
+    Institution ||--o{ PortalFolder : "har"
+    Institution ||--o{ PortalAnnouncement : "har"
 
     User ||--o{ Grade : "mottar (elev)"
     User ||--o{ Attendance : "har"
-    User ||--o{ SubjectAssignment : "tildelt"
-    User ||--o{ Booking : "oppretter"
-
-    Subject ||--o{ Grade : "har"
-    Subject ||--o{ SubjectAssignment : "har"
+    User ||--o| UserStatus : "har status"
 
     Program ||--o{ ProgramMember : "har"
     Program ||--o{ AdmissionPeriod : "har"
+    Program }o--o{ Subject : "inneholder"
 
     AdmissionPeriod ||--o{ Application : "har"
     AdmissionPeriod ||--o{ AdmissionRequirement : "har"
 
+    Application }o--|| User : "søker (elev)"
+    Application }o--|| Program : "søker til"
+
     Booking }o--o{ Room : "reserverer"
+    Booking }o--|| Program : "klasse"
 
     ChatRoom ||--o{ ChatMessage : "inneholder"
     ChatRoom ||--o{ ChatMember : "har"
@@ -199,14 +207,15 @@ erDiagram
 
     PortalFolder ||--o{ PortalFile : "inneholder"
     PortalFolder ||--o{ PortalSubmission : "har"
-    PortalFolder ||--o{ PortalAnnouncement : "har"
-    PortalSubmission ||--o{ PortalComment : "har"
+    PortalAnnouncement ||--o{ PortalComment : "har"
 
     Institution {
         Integer id PK
         String name UK
         String location
         String level "UNIVERSITET, FAGSKOLE, VGS, UNGDOMSSKOLE"
+        boolean active "standard true"
+        String ownership "PUBLIC, PRIVATE"
     }
 
     User {
@@ -221,19 +230,28 @@ erDiagram
         String gender
         LocalDate birthDate
         Integer institution_id FK
+        Integer transferredFromInstitutionId "overført fra"
+    }
+
+    UserStatus {
+        Integer user_id PK_FK
+        LocalDateTime lastSeen
     }
 
     Subject {
         Integer id PK
-        String code UK
+        String code "UK per institusjon"
         String name
-        String level
+        String description
+        String level "UNGDOMSSKOLE, VGS, FAGSKOLE, UNIVERSITET"
+        String program "studieretning"
+        String yearLevel "trinn"
         Integer institution_id FK
     }
 
     Room {
         Integer id PK
-        String roomNumber UK
+        String roomNumber "UK per institusjon"
         String roomType
         Integer capacity
         Integer institution_id FK
@@ -243,19 +261,25 @@ erDiagram
         Integer id PK
         String name
         String description
-        Boolean attendanceRequired
+        boolean attendanceRequired
         Integer minAttendancePct
-        String programType
+        String programType "STUDIEFORBEREDENDE, YRKESFAG"
+        Double minGpa
+        Integer maxStudents
+        String prerequisites
         Integer institution_id FK
     }
 
     Grade {
         Integer id PK
-        Integer student_id FK
-        String subjectCode
+        Integer user_id FK
+        String subject "fagkode"
         String value
         LocalDate dateGiven
         String teacherUsername
+        String yearLevel
+        String originalValue "bevart ved IV"
+        boolean retake "privatisteksamen"
         Integer institution_id FK
     }
 
@@ -263,10 +287,18 @@ erDiagram
         Integer id PK
         Integer student_id FK
         LocalDate dateOf
-        String status
+        String status "Present, Absent, Sick, Late"
         String note
         String subjectCode
-        Boolean excused
+        boolean excused
+        Integer institution_id FK
+    }
+
+    SubjectAssignment {
+        Integer id PK
+        String username "brukerref"
+        String role "STUDENT, TEACHER"
+        String subject "fagkode"
         Integer institution_id FK
     }
 
@@ -274,11 +306,160 @@ erDiagram
         Integer id PK
         LocalDateTime startDateTime
         LocalDateTime endDateTime
-        String status
+        BookingStatus status "ACTIVE, CANCELLED"
         String description
-        String createdBy
-        String subject
+        String createdBy "lærer-brukernavn"
+        String subject "fagkode"
+        Integer program_id FK
         Integer institution_id FK
+    }
+
+    ProgramMember {
+        Integer id PK
+        Integer program_id FK
+        Integer user_id FK
+        String role "STUDENT, TEACHER"
+        String yearLevel
+        LocalDate enrolledAt
+        boolean graduated
+        boolean diplomaEligible
+        boolean archived
+    }
+
+    AdmissionPeriod {
+        Integer id PK
+        Integer institution_id FK
+        String name
+        String fromLevel
+        String toLevel
+        LocalDate startDate
+        LocalDate endDate
+        String status "OPEN, CLOSED, PROCESSED"
+        Integer maxChoices
+    }
+
+    Application {
+        Integer id PK
+        Integer period_id FK
+        Integer student_id FK
+        Integer program_id FK
+        Integer priority
+        Double gpaSnapshot
+        String status "PENDING, ACCEPTED, WAITLISTED, REJECTED, WITHDRAWN"
+        LocalDateTime submittedAt
+        LocalDateTime processedAt
+    }
+
+    AdmissionRequirement {
+        Integer id PK
+        Integer period_id FK
+        Integer program_id FK
+        Double minGpa
+        Integer maxStudents
+    }
+
+    ChatRoom {
+        Integer id PK
+        String name
+        boolean isGroup
+        Integer created_by FK
+        LocalDateTime createdAt
+    }
+
+    ChatMessage {
+        Integer id PK
+        Integer chat_room_id FK
+        Integer sender_id FK
+        String content
+        LocalDateTime sentAt
+        LocalDateTime editedAt
+        boolean deleted
+        Integer reply_to_id FK
+    }
+
+    ChatMember {
+        Integer id PK
+        Integer chat_room_id FK
+        Integer user_id FK
+        LocalDateTime joinedAt
+        LocalDateTime lastReadAt
+        boolean hidden
+    }
+
+    ChatAttachment {
+        Integer id PK
+        Integer message_id FK
+        String fileName
+        String storedPath
+        long fileSize
+        String mimeType
+    }
+
+    ChatReaction {
+        Integer id PK
+        Integer message_id FK
+        Integer user_id FK
+        String emoji
+    }
+
+    PortalFolder {
+        Integer id PK
+        String name
+        String subjectCode
+        Integer program_id FK
+        Integer institution_id FK
+        Integer created_by_id FK
+        boolean assignment
+        String description
+        LocalDateTime deadline
+        LocalDateTime createdAt
+        Integer sortOrder
+    }
+
+    PortalFile {
+        Integer id PK
+        Integer folder_id FK
+        String fileName
+        String storedPath
+        String mimeType
+        long fileSize
+        Integer uploaded_by_id FK
+        LocalDateTime uploadedAt
+    }
+
+    PortalSubmission {
+        Integer id PK
+        Integer folder_id FK
+        Integer student_id FK
+        String fileName
+        String storedPath
+        String mimeType
+        long fileSize
+        SubmissionStatus status "PENDING, APPROVED, REJECTED"
+        String feedback
+        LocalDateTime submittedAt
+        LocalDateTime reviewedAt
+    }
+
+    PortalAnnouncement {
+        Integer id PK
+        String title
+        String content
+        Integer author_id FK
+        Integer program_id FK
+        String subjectCode
+        Integer institution_id FK
+        boolean pinned
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
+
+    PortalComment {
+        Integer id PK
+        Integer announcement_id FK
+        Integer author_id FK
+        String content
+        LocalDateTime createdAt
     }
 ```
 
