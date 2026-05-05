@@ -7,6 +7,9 @@ import io.javalin.http.Context;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.http.ForbiddenResponse;
 
+import no.example.verdan.dao.InstitutionDao;
+import no.example.verdan.model.Institution;
+
 import no.example.verdan.security.JwtUtil;
 
 import org.slf4j.Logger;
@@ -22,6 +25,7 @@ import org.slf4j.LoggerFactory;
 public class AuthMiddleware {
 
     private static final Logger LOG = LoggerFactory.getLogger(AuthMiddleware.class);
+    private static final InstitutionDao institutionDao = new InstitutionDao();
 
     /** Context attribute keys for storing decoded token data. */
     public static final String ATTR_USER_ID = "userId";
@@ -70,6 +74,18 @@ public class AuthMiddleware {
             ctx.attribute(ATTR_USERNAME, JwtUtil.getUsername(jwt));
             ctx.attribute(ATTR_ROLE, JwtUtil.getRole(jwt));
             ctx.attribute(ATTR_INSTITUTION_ID, JwtUtil.getInstitutionId(jwt));
+
+            // Block staff (INSTITUTION_ADMIN, TEACHER) if their institution is deactivated.
+            // Students are allowed through so they can use the application portal to transfer.
+            String role = JwtUtil.getRole(jwt);
+            Integer instId = JwtUtil.getInstitutionId(jwt);
+            if (instId != null && instId > 0 && ("INSTITUTION_ADMIN".equalsIgnoreCase(role) || "TEACHER".equalsIgnoreCase(role))) {
+                Institution inst = institutionDao.find(instId);
+                if (inst == null || !inst.isActive()) {
+                    LOG.warn("Access denied: institution {} is deactivated for user={}", instId, JwtUtil.getUsername(jwt));
+                    throw new UnauthorizedResponse("Unauthorized");
+                }
+            }
 
             LOG.debug("Authenticated: user={}, role={}", JwtUtil.getUsername(jwt), JwtUtil.getRole(jwt));
         });

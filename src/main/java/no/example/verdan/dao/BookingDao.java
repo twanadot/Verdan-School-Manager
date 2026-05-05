@@ -116,6 +116,42 @@ public class BookingDao extends BaseDao<Booking> {
     }
 
     /**
+     * Find all bookings for a given room, subject code, and program/class.
+     * If programId is null, falls back to filtering by room + subject only.
+     */
+    public List<Booking> findForRoomSubjectAndProgram(Integer roomId, String subjectCode, Integer programId, int institutionId) {
+        if (roomId == null || subjectCode == null || subjectCode.isBlank()) {
+            return List.of();
+        }
+        // If no program, fall back to existing behavior
+        if (programId == null) {
+            return findForRoomAndSubject(roomId, subjectCode, institutionId);
+        }
+
+        String subjLower = subjectCode.trim().toLowerCase();
+
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            return em.createQuery(
+                    "select distinct b " +
+                    "from Booking b join b.rooms r " +
+                    "where r.id = :roomId " +
+                    "  and lower(b.subject) = :subj " +
+                    "  and b.program.id = :progId " +
+                    "  and b.institution.id = :instId",
+                    Booking.class
+            )
+            .setParameter("roomId", roomId)
+            .setParameter("subj", subjLower)
+            .setParameter("progId", programId)
+            .setParameter("instId", institutionId)
+            .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Save booking with status CONFIRMED if the room is available.
      *
      * @return true  → save OK

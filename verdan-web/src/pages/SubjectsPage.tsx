@@ -761,6 +761,7 @@ function PromotionModal({ config, onClose }: { config: LevelConfig; onClose: () 
   };
 
   const totalActions = (preview?.promotions.length ?? 0) + (preview?.graduations.length ?? 0);
+  const hasMissing = (preview?.missingClasses?.length ?? 0) > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -830,6 +831,19 @@ function PromotionModal({ config, onClose }: { config: LevelConfig; onClose: () 
             <p className="text-text-muted text-sm text-center py-6">Ingen elever å flytte opp</p>
           ) : (
             <>
+              {/* Missing classes warning */}
+              {hasMissing && (
+                <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg text-sm text-danger">
+                  <p className="font-semibold mb-1">⚠ Kan ikke flytte opp</p>
+                  <p>Følgende klasser er ikke opprettet:</p>
+                  <ul className="list-disc list-inside mt-1">
+                    {preview!.missingClasses.map((c) => (
+                      <li key={c} className="font-medium">{c}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs">Opprett klassene først, deretter prøv igjen.</p>
+                </div>
+              )}
               {/* Promotions */}
               {preview!.promotions.length > 0 && (
                 <div>
@@ -908,8 +922,9 @@ function PromotionModal({ config, onClose }: { config: LevelConfig; onClose: () 
           {!result && !undoResult && totalActions > 0 && (
             <button
               onClick={handleExecute}
-              disabled={executing}
-              className="px-4 py-2 text-sm rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50"
+              disabled={executing || hasMissing}
+              title={hasMissing ? 'Kan ikke flytte opp: manglende klasser' : undefined}
+              className="px-4 py-2 text-sm rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {executing ? 'Flytter opp...' : `Flytt opp ${totalActions} elever`}
             </button>

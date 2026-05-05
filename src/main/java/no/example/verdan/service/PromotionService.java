@@ -100,7 +100,7 @@ public class PromotionService {
         Set<String> finalYears = FINAL_YEARS.getOrDefault(instLevel, Set.of());
 
         if (progression == null) {
-            return new PromotionPreview(List.of(), List.of(), instLevel);
+            return new PromotionPreview(List.of(), List.of(), instLevel, List.of());
         }
 
         // Load all programs for this institution (needed for target program lookup)
@@ -108,6 +108,7 @@ public class PromotionService {
 
         List<PromotionAction> promotions = new ArrayList<>();
         List<PromotionAction> graduations = new ArrayList<>();
+        Set<String> missingClasses = new LinkedHashSet<>();
 
         // Check students at final year levels (will graduate)
         for (String finalYear : finalYears) {
@@ -154,6 +155,14 @@ public class PromotionService {
                     }
 
                     Program targetProgram = findTargetProgram(pm.getProgram(), fromYear, toYear, allPrograms);
+
+                    // Collect missing classes instead of throwing — allows preview to show all students
+                    String srcName = pm.getProgram().getName();
+                    if (targetProgram == null && srcName.startsWith(fromYear) && srcName.length() > fromYear.length()) {
+                        String expectedTarget = toYear + srcName.substring(fromYear.length());
+                        missingClasses.add(expectedTarget);
+                    }
+
                     promotions.add(new PromotionAction(
                         pm.getUser().getId(),
                         pm.getUser().getUsername(),
@@ -170,7 +179,7 @@ public class PromotionService {
             }
         }
 
-        return new PromotionPreview(promotions, graduations, instLevel);
+        return new PromotionPreview(promotions, graduations, instLevel, List.copyOf(missingClasses));
     }
 
     /**
@@ -265,6 +274,15 @@ public class PromotionService {
 
                     Program sourceProgram = pm.getProgram();
                     Program targetProgram = findTargetProgram(sourceProgram, fromYear, toYear, allPrograms);
+
+                    // Block if program name implies a class suffix (e.g. "8B") but target doesn't exist (e.g. "9B")
+                    String srcName = sourceProgram.getName();
+                    if (targetProgram == null && srcName.startsWith(fromYear) && srcName.length() > fromYear.length()) {
+                        String expectedTarget = toYear + srcName.substring(fromYear.length());
+                        throw new ValidationException(
+                            "Kan ikke flytte opp: Klassen '" + expectedTarget + "' er ikke opprettet. Opprett klassen først."
+                        );
+                    }
 
                     if (targetProgram != null && targetProgram.getId() != sourceProgram.getId()) {
                         // Move student to different program
@@ -682,7 +700,8 @@ public class PromotionService {
 
     // ── Result DTOs ──
 
-    public record PromotionPreview(List<PromotionAction> promotions, List<PromotionAction> graduations, String level) {}
+    public record PromotionPreview(List<PromotionAction> promotions, List<PromotionAction> graduations,
+                                     String level, List<String> missingClasses) {}
 
     public record PromotionAction(int userId, String username, String fullName,
                                    int programId, String programName,

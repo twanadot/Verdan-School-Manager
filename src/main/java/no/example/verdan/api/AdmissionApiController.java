@@ -177,7 +177,15 @@ public class AdmissionApiController {
         AuthMiddleware.requireAdmin(ctx);
         int id = Integer.parseInt(ctx.pathParam("id"));
         int institutionId = safeInstitutionId(ctx);
-        admissionService.reopenPeriod(id, institutionId);
+        // Read optional newEndDate from body
+        String newEndDate = null;
+        try {
+            var body = ctx.bodyAsClass(java.util.Map.class);
+            if (body != null && body.containsKey("newEndDate")) {
+                newEndDate = (String) body.get("newEndDate");
+            }
+        } catch (Exception ignored) { /* empty body is fine */ }
+        admissionService.reopenPeriod(id, institutionId, newEndDate);
         ctx.json(ApiResponse.ok("Period reopened"));
     }
 

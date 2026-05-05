@@ -11,6 +11,10 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Check for deactivation redirect reason
+  const params = new URLSearchParams(window.location.search);
+  const reason = params.get('reason');
+
   // Redirect if already logged in
   if (isAuthenticated) {
     navigate('/dashboard', { replace: true });
@@ -54,6 +58,13 @@ export function LoginPage() {
         {/* Form card */}
         <div className="bg-bg-secondary border border-border rounded-2xl p-8 shadow-xl shadow-black/20">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {reason === 'deactivated' && (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-sm">
+                <AlertCircle size={16} className="shrink-0" />
+                <span>Din institusjon er deaktivert. Kontakt systemadministrator for mer informasjon.</span>
+              </div>
+            )}
+
             {error && (
               <div className="flex items-center gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
                 <AlertCircle size={16} />

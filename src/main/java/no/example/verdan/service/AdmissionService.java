@@ -149,13 +149,20 @@ public class AdmissionService {
         admissionDao.update(period);
     }
 
-    public void reopenPeriod(int id, int institutionId) {
+    public void reopenPeriod(int id, int institutionId, String newEndDate) {
         AdmissionPeriod period = admissionDao.find(id);
         if (period == null || period.getInstitution().getId() != institutionId)
             throw new NotFoundException("Period not found");
+        if (newEndDate != null && !newEndDate.isBlank()) {
+            LocalDate parsed = LocalDate.parse(newEndDate);
+            if (parsed.isBefore(LocalDate.now())) {
+                throw new ValidationException("Ny frist må være i fremtiden");
+            }
+            period.setEndDate(parsed);
+        }
         period.setStatus("OPEN");
         admissionDao.update(period);
-        LOG.info("Period '{}' reopened", period.getName());
+        LOG.info("Period '{}' reopened with end date {}", period.getName(), period.getEndDate());
     }
 
     public void deletePeriod(int id, int institutionId) {
@@ -725,17 +732,23 @@ public class AdmissionService {
                     student.getUsername(), targetInst.getName(), targetInst.getId());
             }
 
-            // Detect the first year from the program's subjects (lowest year level)
-            String firstYear = detectFirstYear(program, defaultFirstYear);
+            // For same-level transfers (e.g. VGS→VGS påbygg), place at highest year (VG3)
+            // For cross-level transfers (e.g. ungdomsskole→VGS), place at first year (VG1)
+            String enrollYear;
+            if (isSameLevelTransfer) {
+                enrollYear = detectLastYear(program, defaultFirstYear);
+            } else {
+                enrollYear = detectFirstYear(program, defaultFirstYear);
+            }
 
-            // Create ProgramMember at the first year level
-            ProgramMember member = new ProgramMember(program, student, "STUDENT", firstYear);
+            // Create ProgramMember at the determined year level
+            ProgramMember member = new ProgramMember(program, student, "STUDENT", enrollYear);
             memberDao.save(member);
 
-            // Auto-enroll in subjects matching the first year level only
+            // Auto-enroll in subjects matching the enrollment year level only
             int instId = program.getInstitution().getId();
             for (Subject subject : program.getSubjects()) {
-                if (firstYear.equals(subject.getYearLevel())) {
+                if (enrollYear.equals(subject.getYearLevel())) {
                     assignmentDao.assignStudentToSubject(student.getUsername(), subject.getCode(), instId);
                 }
             }
@@ -746,7 +759,7 @@ public class AdmissionService {
 
             enrolled++;
             LOG.info("Enrolled accepted student '{}' into program '{}' at institution '{}' year '{}'",
-                student.getUsername(), program.getName(), targetInst != null ? targetInst.getName() : "?", firstYear);
+                student.getUsername(), program.getName(), targetInst != null ? targetInst.getName() : "?", enrollYear);
         }
 
         LOG.info("Enrollment complete for period '{}': {} enrolled, {} skipped",
@@ -1022,6 +1035,33 @@ public class AdmissionService {
         // Fallback: use the year level of the first subject
         String firstSubjectYear = program.getSubjects().iterator().next().getYearLevel();
         return firstSubjectYear != null ? firstSubjectYear : fallback;
+    }
+
+    /**
+     * Detect the HIGHEST year level in a program's subjects.
+     * Used for same-level transfers (e.g. VGS→VGS påbygg) where students
+     * should be placed at the last year (VG3) rather than the first (VG1).
+     */
+    private String detectLastYear(Program program, String fallback) {
+        if (program.getSubjects() == null || program.getSubjects().isEmpty()) return fallback;
+
+        // Reverse priority order: highest year level first
+        List<String> lastYears = List.of("VG3", "VG3_PABYGG", "VG2", "VG1",
+            "PHD_3", "PHD_2", "PHD_1", "MASTER_2", "MASTER_1",
+            "BACHELOR_3", "BACHELOR_2", "BACHELOR_1",
+            "10", "9", "8", "4", "3", "2", "1");
+        for (String ly : lastYears) {
+            for (Subject s : program.getSubjects()) {
+                if (ly.equals(s.getYearLevel())) return ly;
+            }
+        }
+
+        // Fallback: use the year level of the last subject
+        String lastSubjectYear = null;
+        for (Subject s : program.getSubjects()) {
+            lastSubjectYear = s.getYearLevel();
+        }
+        return lastSubjectYear != null ? lastSubjectYear : fallback;
     }
 
     // ========================================================================

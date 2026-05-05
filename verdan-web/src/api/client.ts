@@ -52,6 +52,16 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 403 from deactivated institution — redirect to login with reason
+    if (error.response?.status === 403) {
+      const msg = error.response?.data?.error || '';
+      if (msg.includes('deaktivert')) {
+        clearTokens();
+        window.location.href = '/login?reason=deactivated';
+        return Promise.reject(error);
+      }
+    }
+
     // Don't retry login or refresh requests
     if (
       error.response?.status === 401 &&

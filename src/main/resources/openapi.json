@@ -205,6 +205,7 @@
           "200": { "description": "Login successful, returns JWT token and user info" },
           "400": { "description": "Missing username or password" },
           "401": { "description": "Invalid credentials" },
+          "403": { "description": "Institution deactivated (staff only)" },
           "429": { "description": "Too many login attempts (rate limited)" }
         }
       }
@@ -231,7 +232,8 @@
         "responses": {
           "200": { "description": "New access + refresh tokens" },
           "400": { "description": "Missing or invalid token type" },
-          "401": { "description": "Expired or invalid refresh token" }
+          "401": { "description": "Expired or invalid refresh token" },
+          "403": { "description": "Institution deactivated (staff only)" }
         }
       }
     },
@@ -327,6 +329,80 @@
         "responses": {
           "200": { "description": "Deleted count" },
           "403": { "description": "Cannot delete super admins" }
+        }
+      }
+    },
+    "/api/users/transfer": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Batch transfer existing students to this institution via CSV/Excel (VGS ADMIN)",
+        "description": "Reads a CSV/Excel file with columns: epost (or brukernavn), linje, trinn. Finds existing students by email/username and moves them to the calling admin's institution. Students keep their credentials, grades, and history. Uses all-or-nothing validation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV or Excel file with columns: epost, linje, trinn"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "transferred": { "type": "integer", "description": "Number of students successfully transferred" },
+                        "skipped": { "type": "integer" },
+                        "total": { "type": "integer", "description": "Total rows in the file" },
+                        "errors": { "type": "array", "items": { "type": "string" }, "description": "Validation errors (if any, entire batch is rejected)" },
+                        "transferredStudents": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "username": { "type": "string" },
+                              "fullName": { "type": "string" },
+                              "program": { "type": "string", "description": "Target program/linje name" },
+                              "yearLevel": { "type": "string", "description": "VG1, VG2, or VG3" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "No file uploaded" },
+          "500": { "description": "File parse error" }
+        }
+      }
+    },
+    "/api/users/{id}/transfer-history": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get grades and attendance from student's previous institution (ADMIN)",
+        "description": "Returns the transfer history for a student who was transferred from another institution. Includes grades and attendance records from the previous school.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "Transfer history with grades and attendance from previous institution" },
+          "403": { "description": "Insufficient permissions" }
         }
       }
     },
@@ -667,6 +743,21 @@
         "summary": "Soft-delete institution (SUPER_ADMIN)",
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/institutions/inactive": {
+      "get": {
+        "tags": ["Institutions"],
+        "summary": "List deactivated institutions (SUPER_ADMIN)",
+        "responses": { "200": { "description": "List of deactivated institutions" }, "403": { "description": "Insufficient permissions" } }
+      }
+    },
+    "/api/institutions/{id}/reactivate": {
+      "put": {
+        "tags": ["Institutions"],
+        "summary": "Reactivate a deactivated institution (SUPER_ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Institution reactivated" }, "403": { "description": "Insufficient permissions" }, "404": { "description": "Not found" } }
       }
     },
     "/api/programs": {
@@ -1251,6 +1342,159 @@
         "tags": ["Chat"],
         "summary": "Get available contacts for new conversations",
         "responses": { "200": { "description": "List of contacts based on role hierarchy" } }
+      }
+    },
+    "/api/admissions/portal": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get admission portal listings for the student's level",
+        "description": "Returns all open admission periods visible to the current user. Filters by fromLevel (institution level the student is graduating from).",
+        "parameters": [{ "name": "fromLevel", "in": "query", "schema": { "type": "string", "enum": ["UNGDOMSSKOLE", "VGS", "FAGSKOLE", "UNIVERSITET"] }, "description": "Filter by source institution level" }],
+        "responses": { "200": { "description": "List of available admission periods with institution info" } }
+      }
+    },
+    "/api/admissions/available": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get programs the student is eligible to apply to",
+        "responses": { "200": { "description": "List of available programs with admission periods" } }
+      }
+    },
+    "/api/admissions/apply": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Submit an application (STUDENT)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["periodId"], "properties": { "periodId": { "type": "integer" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Application submitted" },
+          "400": { "description": "Validation error (not graduated, period closed, already applied)" }
+        }
+      }
+    },
+    "/api/admissions/my-applications": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get current user's applications (STUDENT)",
+        "responses": { "200": { "description": "List of student's applications with status" } }
+      }
+    },
+    "/api/admissions/applications/{id}/withdraw": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Withdraw an application (STUDENT)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Application withdrawn" }, "400": { "description": "Cannot withdraw accepted application" } }
+      }
+    },
+    "/api/admissions/applications/{id}/confirm": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Confirm an accepted offer (STUDENT)",
+        "description": "Student confirms they accept this offer. All other pending applications are automatically withdrawn.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Offer confirmed, other applications withdrawn" }, "400": { "description": "Application is not in ACCEPTED status" } }
+      }
+    },
+    "/api/admissions/periods": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "List admission periods for this institution (ADMIN)",
+        "responses": { "200": { "description": "List of admission periods" } }
+      },
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Create admission period (ADMIN)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "required": ["programId", "startDate", "endDate", "maxSeats"], "properties": { "programId": { "type": "integer" }, "startDate": { "type": "string", "format": "date" }, "endDate": { "type": "string", "format": "date" }, "maxSeats": { "type": "integer" } } } } }
+        },
+        "responses": { "201": { "description": "Period created" }, "400": { "description": "Validation error" } }
+      }
+    },
+    "/api/admissions/periods/{id}": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Update admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "startDate": { "type": "string", "format": "date" }, "endDate": { "type": "string", "format": "date" }, "maxSeats": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "tags": ["Admissions"],
+        "summary": "Delete admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "204": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/admissions/periods/{id}/close": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Close an admission period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Period closed" } }
+      }
+    },
+    "/api/admissions/periods/{id}/reopen": {
+      "put": {
+        "tags": ["Admissions"],
+        "summary": "Reopen a closed admission period with a new deadline (ADMIN)",
+        "description": "Reopens a closed period. Requires a new future-dated end date.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "newEndDate": { "type": "string", "format": "date", "description": "New deadline (must be in the future)" } } } } }
+        },
+        "responses": { "200": { "description": "Period reopened with new deadline" }, "400": { "description": "Deadline must be in the future" } }
+      }
+    },
+    "/api/admissions/periods/{id}/process": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Process applications — accept/reject based on seats and requirements (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Processing results with accepted/rejected counts" } }
+      }
+    },
+    "/api/admissions/periods/{id}/enroll-accepted": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Enroll confirmed students into the program (ADMIN)",
+        "description": "Creates ProgramMember entries for all CONFIRMED applications. Handles cross-level transfers (e.g. ungdomsskole→VGS at VG1) and same-level transfers (e.g. VGS→VGS at VG3 for påbygg).",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Enrollment results with count" } }
+      }
+    },
+    "/api/admissions/periods/{id}/overview": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get overview of a period's applications (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Application overview with counts by status" } }
+      }
+    },
+    "/api/admissions/periods/{id}/requirements": {
+      "get": {
+        "tags": ["Admissions"],
+        "summary": "Get admission requirements for a period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "List of requirements" } }
+      },
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Set admission requirement for a period (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "subjectCode": { "type": "string" }, "minGrade": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Requirement saved" } }
+      }
+    },
+    "/api/admissions/periods/{id}/bulk-publish": {
+      "post": {
+        "tags": ["Admissions"],
+        "summary": "Bulk publish decisions to all applicants (ADMIN)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Decisions published" } }
       }
     }
   },

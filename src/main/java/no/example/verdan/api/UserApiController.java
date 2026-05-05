@@ -35,6 +35,7 @@ public class UserApiController {
     public void registerRoutes(Javalin app) {
         app.get("/api/users", this::getAll);
         app.post("/api/users/import", this::batchImport);
+        app.post("/api/users/transfer", this::batchTransfer);
         app.post("/api/users/batch-delete", this::batchDelete);
         app.get("/api/users/{id}", this::getById);
         app.post("/api/users", this::create);
@@ -122,6 +123,30 @@ public class UserApiController {
         } catch (Exception e) {
             LOG.error("Batch import failed: {}", e.getMessage(), e);
             ctx.status(500).json(ApiResponse.error("Import feilet. Sjekk at filen er i riktig format (CSV/Excel)."));
+        }
+    }
+
+    /** POST /api/users/transfer – Batch transfer existing students to this institution (VGS). */
+    private void batchTransfer(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
+        int institutionId = AuthMiddleware.getInstitutionId(ctx);
+
+        var uploadedFile = ctx.uploadedFile("file");
+        if (uploadedFile == null) {
+            ctx.status(400).json(ApiResponse.error("Ingen fil lastet opp. Bruk 'file' som felt-navn."));
+            return;
+        }
+
+        String fileName = uploadedFile.filename();
+        try {
+            byte[] fileData = uploadedFile.content().readAllBytes();
+            BatchImportService.TransferResult result = batchImportService.transferStudents(fileData, fileName, institutionId);
+            LOG.info("Batch transfer by {}: {} transferred from '{}'",
+                AuthMiddleware.getUsername(ctx), result.transferred(), fileName);
+            ctx.json(ApiResponse.ok(result));
+        } catch (Exception e) {
+            LOG.error("Batch transfer failed: {}", e.getMessage(), e);
+            ctx.status(500).json(ApiResponse.error("Overføring feilet. Sjekk at filen er i riktig format."));
         }
     }
 

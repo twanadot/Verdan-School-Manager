@@ -94,24 +94,57 @@ export function ReportsPage() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [displayList]);
 
+  const instLevel = user?.institutionLevel || '';
+
   const totalWithDiploma = graduated.filter((s) => s.diplomaEligible).length;
   const totalKompetanse = graduated.filter(
     (s) => !s.diplomaEligible && s.programType === 'YRKESFAG',
   ).length;
   const totalIkkeBestatt = graduated.filter(
-    (s) => !s.diplomaEligible && s.programType !== 'YRKESFAG',
+    (s) => !s.diplomaEligible && (instLevel === 'VGS' ? s.programType !== 'YRKESFAG' : true),
   ).length;
+
+  /** Label for the diploma card based on institution level */
+  const getDiplomaLabel = () => {
+    switch (instLevel) {
+      case 'UNGDOMSSKOLE': return 'Vitnemål';
+      case 'FAGSKOLE': return 'Fagskolegrad';
+      case 'UNIVERSITET': return 'Grad';
+      default: return 'Vitnemål';
+    }
+  };
+  const getDiplomaSubLabel = () => {
+    switch (instLevel) {
+      case 'UNGDOMSSKOLE': return 'bestått';
+      case 'VGS': return 'med studiekompetanse';
+      case 'FAGSKOLE': return 'fagskolegrad';
+      case 'UNIVERSITET': return 'bachelor / master / doktorgrad';
+      default: return 'bestått';
+    }
+  };
+
+  /** Document type label per student */
+  const getDocType = (s: GraduatedStudent) => {
+    if (!s.diplomaEligible) return 'Ikke bestått';
+    switch (instLevel) {
+      case 'UNGDOMSSKOLE': return 'Vitnemål';
+      case 'FAGSKOLE': return 'Fagskolegrad';
+      case 'UNIVERSITET': {
+        if (s.yearLevel?.startsWith('BACHELOR')) return 'Bachelorgrad';
+        if (s.yearLevel?.startsWith('MASTER')) return 'Mastergrad';
+        if (s.yearLevel?.startsWith('PHD')) return 'Doktorgrad';
+        return 'Grad';
+      }
+      case 'VGS':
+        return s.programType === 'YRKESFAG' ? 'Kompetansebevis' : 'Vitnemål';
+      default: return 'Vitnemål';
+    }
+  };
 
   // CSV export
   const handleExport = () => {
     const all = [...graduated, ...archived];
     const header = 'Navn;Brukernavn;E-post;Program;Årstrinn;Dokumenttype;Status\n';
-    const getDocType = (s: GraduatedStudent) =>
-      s.diplomaEligible
-        ? 'Vitnemål'
-        : s.programType === 'YRKESFAG'
-          ? 'Kompetansebevis'
-          : 'Ikke bestått';
     const rows = all
       .map(
         (s) =>
@@ -207,7 +240,7 @@ export function ReportsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
+      <div className={`grid grid-cols-1 gap-4 mb-6 ${instLevel === 'VGS' ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
         <div className="bg-bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-text-muted mb-2">
             <Users size={16} /> Totalt uteksaminert
@@ -217,11 +250,12 @@ export function ReportsPage() {
         </div>
         <div className="bg-bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-text-muted mb-2">
-            <GraduationCap size={16} /> Vitnemål
+            <GraduationCap size={16} /> {getDiplomaLabel()}
           </div>
           <p className="text-3xl font-bold text-green-400">{totalWithDiploma}</p>
-          <p className="text-xs text-text-muted mt-1">med studiekompetanse</p>
+          <p className="text-xs text-text-muted mt-1">{getDiplomaSubLabel()}</p>
         </div>
+        {instLevel === 'VGS' && (
         <div className="bg-bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-text-muted mb-2">
             <Award size={16} /> Kompetansebevis
@@ -229,6 +263,7 @@ export function ReportsPage() {
           <p className="text-3xl font-bold text-yellow-400">{totalKompetanse}</p>
           <p className="text-xs text-text-muted mt-1">yrkesfag (bestått)</p>
         </div>
+        )}
         <div className="bg-bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 text-text-muted mb-2">
             <AlertTriangle size={16} /> Ikke bestått
@@ -346,9 +381,9 @@ export function ReportsPage() {
                             <td className="px-5 py-3">
                               {s.diplomaEligible ? (
                                 <span className="text-xs px-2.5 py-1 rounded-full bg-green-400/10 text-green-400 border border-green-400/20 font-medium">
-                                  🎓 Vitnemål
+                                  🎓 {getDocType(s)}
                                 </span>
-                              ) : s.programType === 'YRKESFAG' ? (
+                              ) : instLevel === 'VGS' && s.programType === 'YRKESFAG' ? (
                                 <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 font-medium">
                                   📄 Kompetansebevis
                                 </span>

@@ -160,7 +160,8 @@ public class BookingService {
             LocalTime newStartTime = newStart.toLocalTime();
             LocalTime newEndTime = newEnd.toLocalTime();
 
-            List<Booking> all = bookingDao.findForRoomAndSubject(roomId, oldSubject, institutionId);
+            Integer programId = booking.getProgram() != null ? booking.getProgram().getId() : null;
+            List<Booking> all = bookingDao.findForRoomSubjectAndProgram(roomId, oldSubject, programId, institutionId);
             for (Booking b : all) {
                 if (b.getId().equals(booking.getId())) continue;
                 if (b.getStartDateTime() == null || b.getEndDateTime() == null) continue;
@@ -216,10 +217,12 @@ public class BookingService {
                 List<Booking> list = bookingDao.findForRoomBetween(roomId, from, to, institutionId);
 
                 List<Integer> idsToDelete = new java.util.ArrayList<>();
+                Integer programId = booking.getProgram() != null ? booking.getProgram().getId() : null;
                 for (Booking b : list) {
                     if (subject.equalsIgnoreCase(b.getSubject()) &&
                         b.getStartDateTime() != null && b.getStartDateTime().toLocalTime().equals(start) &&
-                        b.getEndDateTime() != null && b.getEndDateTime().toLocalTime().equals(end)) {
+                        b.getEndDateTime() != null && b.getEndDateTime().toLocalTime().equals(end) &&
+                        (programId == null || (b.getProgram() != null && programId.equals(b.getProgram().getId())))) {
                         idsToDelete.add(b.getId());
                     }
                 }

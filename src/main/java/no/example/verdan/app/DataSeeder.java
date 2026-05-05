@@ -27,6 +27,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,6 +124,9 @@ public class DataSeeder {
 
         // --- 11. FIX VGS ATTENDANCE LIMITS (migration) ---
         fixVgsAttendanceLimits(instDao);
+
+        // --- 12. FIX ROOM UNIQUE CONSTRAINT (migration) ---
+        dropLegacyRoomConstraint();
     }
 
     /**
@@ -147,6 +153,59 @@ public class DataSeeder {
         }
         if (fixed > 0) {
             LOG.info("Fixed VGS attendance limits for {} programs", fixed);
+        }
+    }
+
+    /**
+     * Drop the legacy global unique constraint on rooms.room_number.
+     * The new composite constraint (room_number + institution_id) is created
+     * automatically by Hibernate hbm2ddl=update from the @UniqueConstraint annotation.
+     * This migration only needs to run once; IF EXISTS makes it safe to repeat.
+     *
+     * Hibernate generates random constraint names (e.g. UKb22fgh80...), so we
+     * dynamically look up any single-column unique index on room_number and drop it.
+     */
+    @SuppressWarnings("unchecked")
+    private void dropLegacyRoomConstraint() {
+        EntityManager em = no.example.verdan.util.HibernateUtil.emf().createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+
+            // Find all unique index names on the rooms table
+            List<Object[]> indexes = em.createNativeQuery(
+                "SELECT DISTINCT INDEX_NAME, COUNT(*) AS col_count " +
+                "FROM INFORMATION_SCHEMA.STATISTICS " +
+                "WHERE TABLE_SCHEMA = DATABASE() " +
+                "  AND TABLE_NAME = 'rooms' " +
+                "  AND NON_UNIQUE = 0 " +
+                "  AND INDEX_NAME != 'PRIMARY' " +
+                "GROUP BY INDEX_NAME " +
+                "HAVING col_count = 1"
+            ).getResultList();
+
+            for (Object[] row : indexes) {
+                String indexName = (String) row[0];
+                // Check if this single-column index is on room_number
+                List<?> cols = em.createNativeQuery(
+                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() " +
+                    "  AND TABLE_NAME = 'rooms' " +
+                    "  AND INDEX_NAME = '" + indexName + "'"
+                ).getResultList();
+
+                if (cols.size() == 1 && "room_number".equals(cols.get(0))) {
+                    em.createNativeQuery("ALTER TABLE rooms DROP INDEX `" + indexName + "`").executeUpdate();
+                    LOG.info("Dropped legacy unique index '{}' on rooms.room_number", indexName);
+                }
+            }
+
+            tx.commit();
+        } catch (Exception ex) {
+            if (tx.isActive()) tx.rollback();
+            LOG.warn("Could not drop legacy room constraint: {}", ex.getMessage());
+        } finally {
+            em.close();
         }
     }
 

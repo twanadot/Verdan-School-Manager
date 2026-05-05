@@ -5,8 +5,10 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 
 import no.example.verdan.auth.AuthService;
+import no.example.verdan.dao.InstitutionDao;
 import no.example.verdan.dto.ApiResponse;
 import no.example.verdan.dto.AuthDto;
+import no.example.verdan.model.Institution;
 import no.example.verdan.model.User;
 import no.example.verdan.security.JwtUtil;
 import no.example.verdan.security.RateLimiter;
@@ -22,6 +24,7 @@ public class AuthApiController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AuthApiController.class);
     private final AuthService authService = new AuthService();
+    private final InstitutionDao institutionDao = new InstitutionDao();
 
     // Rate limiter: max 50 login attempts per IP per 15 minutes
     private final RateLimiter loginRateLimiter = new RateLimiter(50, 15 * 60 * 1000);
@@ -59,6 +62,18 @@ public class AuthApiController {
             LOG.warn("Failed login attempt for identifier: {} from IP: {}", req.username(), clientIp);
             ctx.status(401).json(ApiResponse.error("Invalid username/email or password"));
             return;
+        }
+
+        // Block staff (INSTITUTION_ADMIN, TEACHER) if their institution is deactivated.
+        // Students are allowed through so they can use the application portal to transfer.
+        if (user.getInstitution() != null && !user.getInstitution().isActive()) {
+            String userRole = user.getRole();
+            if ("INSTITUTION_ADMIN".equalsIgnoreCase(userRole) || "TEACHER".equalsIgnoreCase(userRole)) {
+                LOG.warn("Login blocked: institution {} is deactivated for user '{}'",
+                         user.getInstitution().getId(), user.getUsername());
+                ctx.status(403).json(ApiResponse.error("Din institusjon er deaktivert. Kontakt systemadministrator."));
+                return;
+            }
         }
 
         Integer instId = (user.getInstitution() != null) ? user.getInstitution().getId() : null;
@@ -105,6 +120,16 @@ public class AuthApiController {
         String role = JwtUtil.getRole(jwt);
         Integer instId = JwtUtil.getInstitutionId(jwt);
         String instName = jwt.getClaim("institutionName").asString();
+
+        // Block staff (INSTITUTION_ADMIN, TEACHER) if their institution is deactivated.
+        if (instId != null && instId > 0 && ("INSTITUTION_ADMIN".equalsIgnoreCase(role) || "TEACHER".equalsIgnoreCase(role))) {
+            Institution inst = institutionDao.find(instId);
+            if (inst == null || !inst.isActive()) {
+                LOG.warn("Token refresh blocked: institution {} deactivated for user '{}'", instId, username);
+                ctx.status(403).json(ApiResponse.error("Din institusjon er deaktivert. Kontakt systemadministrator."));
+                return;
+            }
+        }
 
         String newAccessToken = JwtUtil.generateToken(userId, username, role, instId, instName);
         String newRefreshToken = JwtUtil.generateRefreshToken(userId, username, role, instId, instName);

@@ -8,15 +8,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "rooms")
+@Table(name = "rooms", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"room_number", "institution_id"})
+})
 public class Room {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Integer id;
 
-  @Column(unique = true, nullable = false)
+  @Column(nullable = false)
   private String roomNumber;
 
   private String roomType;

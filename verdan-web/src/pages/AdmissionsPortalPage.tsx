@@ -232,8 +232,17 @@ function PortalBrowse({
     queryFn: () => getPortalListings(user?.role === 'STUDENT' ? user?.institutionLevel : undefined),
   });
 
+  // Filter listings to only show institution levels relevant to the user's current level
+  const RELEVANT_LEVELS: Record<string, string[]> = {
+    UNGDOMSSKOLE: ['VGS', 'UNGDOMSSKOLE'],
+    VGS: ['VGS', 'FAGSKOLE', 'UNIVERSITET'],
+    FAGSKOLE: ['FAGSKOLE', 'UNIVERSITET'],
+    UNIVERSITET: ['UNIVERSITET', 'FAGSKOLE'],
+  };
+
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
+    const allowedLevels = user?.institutionLevel ? RELEVANT_LEVELS[user.institutionLevel] : null;
     return listings.filter((l) => {
       const matchSearch =
         !s ||
@@ -242,9 +251,10 @@ function PortalBrowse({
         l.periodName.toLowerCase().includes(s);
       const matchLevel = !levelFilter || l.toLevel === levelFilter;
       const matchOwnership = !ownershipFilter || l.ownership === ownershipFilter;
-      return matchSearch && matchLevel && matchOwnership;
+      const matchRelevant = !allowedLevels || allowedLevels.includes(l.toLevel);
+      return matchSearch && matchLevel && matchOwnership && matchRelevant;
     });
-  }, [listings, search, levelFilter, ownershipFilter]);
+  }, [listings, search, levelFilter, ownershipFilter, user?.institutionLevel]);
 
   const publicListings = useMemo(
     () => filtered.filter((l) => l.ownership !== 'PRIVATE'),
@@ -269,7 +279,12 @@ function PortalBrowse({
   const publicGrouped = useMemo(() => groupByInstitution(publicListings), [publicListings]);
   const privateGrouped = useMemo(() => groupByInstitution(privateListings), [privateListings]);
 
-  const levels = [...new Set(listings.map((l) => l.toLevel))];
+  const allowedLevels = user?.institutionLevel ? RELEVANT_LEVELS[user.institutionLevel] : null;
+  const levels = [...new Set(
+    listings
+      .filter((l) => !allowedLevels || allowedLevels.includes(l.toLevel))
+      .map((l) => l.toLevel),
+  )];
 
   if (isLoading) return <LoadingState message="Laster søknadsportal..." />;
 
@@ -933,6 +948,8 @@ function PeriodCard({
     total: number;
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showReopen, setShowReopen] = useState(false);
+  const [reopenDate, setReopenDate] = useState('');
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['admissionPeriods'] });
@@ -949,10 +966,12 @@ function PeriodCard({
   });
 
   const reopenMut = useMutation({
-    mutationFn: () => reopenAdmissionPeriod(period.id),
+    mutationFn: (newEndDate: string) => reopenAdmissionPeriod(period.id, newEndDate),
     onSuccess: () => {
       invalidateAll();
-      toast.success('Opptaksperiode gjenåpnet');
+      setShowReopen(false);
+      setReopenDate('');
+      toast.success('Opptaksperiode gjenåpnet med ny frist');
     },
     onError: () => toast.error('Kunne ikke gjenåpne'),
   });
@@ -1029,8 +1048,10 @@ function PeriodCard({
             )}
             {(period.status === 'CLOSED' || period.status === 'PROCESSED') && (
               <button
-                onClick={() => reopenMut.mutate()}
-                disabled={reopenMut.isPending}
+                onClick={() => {
+                  setReopenDate('');
+                  setShowReopen(true);
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-lg text-text-secondary hover:bg-bg-hover transition-colors"
               >
                 <RotateCcw size={13} /> Gjenåpne
@@ -1130,6 +1151,44 @@ function PeriodCard({
             onCancel={() => setConfirmDelete(false)}
             loading={deleteMut.isPending}
           />
+
+          {/* Reopen with new deadline dialog */}
+          {showReopen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReopen(false)} />
+              <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-sm shadow-2xl">
+                <h3 className="text-lg font-semibold text-text-primary mb-1">Gjenåpne opptak</h3>
+                <p className="text-sm text-text-muted mb-4">
+                  Sett ny søknadsfrist for «{period.name}»
+                </p>
+                <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                  Ny frist <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={reopenDate}
+                  onChange={(e) => setReopenDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 bg-bg-input border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-border-focus mb-4"
+                />
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowReopen(false)}
+                    className="px-4 py-2 text-sm rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    onClick={() => reopenMut.mutate(reopenDate)}
+                    disabled={!reopenDate || reopenMut.isPending}
+                    className="px-4 py-2 text-sm rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors disabled:opacity-50"
+                  >
+                    {reopenMut.isPending ? 'Åpner...' : 'Gjenåpne'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -8,8 +8,9 @@ import {
   deleteUser,
   importStudents,
   batchDeleteUsers,
+  transferStudentsBatch,
 } from '../api/users';
-import type { ImportResult } from '../api/users';
+import type { ImportResult, TransferResult } from '../api/users';
 import { getInstitutions } from '../api/institutions';
 import { PageHeader } from '../components/PageHeader';
 import { LoadingState, EmptyState } from '../components/LoadingState';
@@ -35,6 +36,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Undo2,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { User, CreateUserRequest, Institution, InstitutionLevel } from '../types';
@@ -88,6 +90,7 @@ export function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', roleFilter],
@@ -186,6 +189,14 @@ export function UsersPage() {
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Upload size={16} /> Importer elever
+            </button>
+            )}
+            {currentUser?.institutionLevel === 'VGS' && (
+            <button
+              onClick={() => setShowTransfer(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <ArrowRightLeft size={16} /> Overfør elever
             </button>
             )}
             <button
@@ -314,6 +325,17 @@ export function UsersPage() {
           onClose={() => setShowImport(false)}
           onDone={() => {
             setShowImport(false);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+          }}
+        />
+      )}
+
+      {/* Transfer Modal (VGS) */}
+      {showTransfer && (
+        <TransferStudentsModal
+          onClose={() => setShowTransfer(false)}
+          onDone={() => {
+            setShowTransfer(false);
             queryClient.invalidateQueries({ queryKey: ['users'] });
           }}
         />
@@ -1179,6 +1201,266 @@ function ImportStudentsModal({ onClose, onDone }: { onClose: () => void; onDone:
                   <Undo2 size={16} /> Angre import
                 </button>
               )}
+              <button
+                onClick={onDone}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors"
+              >
+                Ferdig
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Transfer Students Modal (VGS) ───
+function TransferStudentsModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<TransferResult | null>(null);
+  const [error, setError] = useState('');
+
+  const handleFile = (f: File) => {
+    const ext = f.name.toLowerCase();
+    if (!ext.endsWith('.csv') && !ext.endsWith('.xlsx') && !ext.endsWith('.xls')) {
+      setError('Ugyldig filformat. Bruk .csv eller .xlsx');
+      return;
+    }
+    setError('');
+    setFile(f);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await transferStudentsBatch(file);
+      setResult(res);
+      if (res.transferred > 0 && res.errors.length === 0) {
+        toast.success(`${res.transferred} elever overført!`);
+      } else if (res.errors.length > 0 && res.transferred === 0) {
+        toast.error(`Overføring avvist: ${res.errors.length} feil funnet.`);
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Overføring feilet';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-text-muted hover:text-text-primary"
+        >
+          <X size={18} />
+        </button>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+            <ArrowRightLeft size={20} className="text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">Overfør elever</h2>
+            <p className="text-xs text-text-muted">Flytt eksisterende elever fra en annen VGS til din institusjon</p>
+          </div>
+        </div>
+
+        {!result ? (
+          <>
+            {/* Info box */}
+            <div className="mb-4 p-3 bg-blue-400/5 border border-blue-400/20 rounded-lg">
+              <p className="text-xs text-blue-300">
+                💡 Elevene beholder brukernavn, passord, karakterer og all historikk. De flyttes til din institusjon og plasseres i riktig linje og trinn.
+              </p>
+            </div>
+
+            {/* Format info */}
+            <div className="mb-5 p-4 bg-bg-primary/50 border border-border rounded-lg">
+              <h3 className="text-sm font-semibold text-text-primary mb-2">
+                Påkrevde kolonner i filen:
+              </h3>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded font-medium">
+                  epost
+                </span>
+                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded font-medium">
+                  linje
+                </span>
+                <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded font-medium">
+                  trinn
+                </span>
+              </div>
+              <p className="text-xs text-text-muted mt-2">
+                Epost brukes til å finne eleven i systemet. Linje må matche et eksisterende program (f.eks. Studiespesialisering). Trinn = VG1, VG2 eller VG3.
+              </p>
+              <p className="text-xs text-text-muted mt-1">
+                Alternativt kan du bruke <strong>brukernavn</strong> i stedet for epost.
+              </p>
+            </div>
+
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+                dragOver
+                  ? 'border-blue-400 bg-blue-400/5'
+                  : file
+                    ? 'border-blue-500/30 bg-blue-500/5'
+                    : 'border-border hover:border-blue-400/50'
+              }`}
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv,.xlsx,.xls';
+                input.onchange = (e) => {
+                  const f = (e.target as HTMLInputElement).files?.[0];
+                  if (f) handleFile(f);
+                };
+                input.click();
+              }}
+            >
+              {file ? (
+                <div className="flex flex-col items-center gap-2">
+                  <FileSpreadsheet size={32} className="text-blue-400" />
+                  <p className="text-sm font-medium text-text-primary">{file.name}</p>
+                  <p className="text-xs text-text-muted">{(file.size / 1024).toFixed(1)} KB</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                    }}
+                    className="text-xs text-danger hover:underline"
+                  >
+                    Fjern fil
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Upload size={32} className="text-text-muted" />
+                  <p className="text-sm text-text-primary font-medium">Dra og slipp fil her</p>
+                  <p className="text-xs text-text-muted">
+                    eller klikk for å velge fil (.csv, .xlsx)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="mt-3 p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-border text-text-secondary hover:bg-bg-hover transition-colors"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!file || loading}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{' '}
+                    Overfører...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRightLeft size={16} /> Overfør elever
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Results */}
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1 p-4 bg-blue-400/5 border border-blue-400/20 rounded-lg text-center">
+                  <CheckCircle2 size={24} className="text-blue-400 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-blue-400">{result.transferred}</p>
+                  <p className="text-xs text-text-muted">Overført</p>
+                </div>
+                {result.errors.length > 0 && (
+                  <div className="flex-1 p-4 bg-danger/5 border border-danger/20 rounded-lg text-center">
+                    <AlertTriangle size={24} className="text-danger mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-danger">{result.errors.length}</p>
+                    <p className="text-xs text-text-muted">Feil</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Transferred students list */}
+              {result.transferredStudents && result.transferredStudents.length > 0 && (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-bg-primary/50 border-b border-border">
+                    <p className="text-xs font-semibold text-text-secondary">Overførte elever</p>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border/50 text-text-muted">
+                          <th className="px-3 py-1.5 text-left font-medium">Brukernavn</th>
+                          <th className="px-3 py-1.5 text-left font-medium">Navn</th>
+                          <th className="px-3 py-1.5 text-left font-medium">Linje</th>
+                          <th className="px-3 py-1.5 text-left font-medium">Trinn</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.transferredStudents.map((s, i) => (
+                          <tr key={i} className="border-b border-border/30">
+                            <td className="px-3 py-1.5 font-medium text-text-primary">{s.username}</td>
+                            <td className="px-3 py-1.5 text-text-secondary">{s.fullName}</td>
+                            <td className="px-3 py-1.5 text-text-secondary">{s.program}</td>
+                            <td className="px-3 py-1.5 text-text-secondary">{s.yearLevel}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Errors */}
+              {result.errors.length > 0 && (
+                <div className="border border-danger/20 rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-danger/5 border-b border-danger/20">
+                    <p className="text-xs font-semibold text-danger">Feil ({result.errors.length})</p>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto p-3 space-y-1">
+                    {result.errors.map((err, i) => (
+                      <p key={i} className="text-xs text-danger/80">• {err}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-5">
               <button
                 onClick={onDone}
                 className="px-4 py-2 text-sm font-medium rounded-lg bg-accent hover:bg-accent-hover text-white transition-colors"

@@ -89,4 +89,37 @@ public class InstitutionDao extends BaseDao<Institution> {
             em.close();
         }
     }
+
+    /** Find all inactive (soft-deleted) institutions. */
+    public List<Institution> findAllInactive() {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        try {
+            return em.createQuery("from Institution i where i.active = false order by i.name", Institution.class)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /** Reactivate a soft-deleted institution. */
+    public void reactivate(int id) {
+        EntityManager em = HibernateUtil.emf().createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Institution inst = em.find(Institution.class, id);
+            if (inst == null) {
+                throw new IllegalArgumentException("Institution not found");
+            }
+            inst.setActive(true);
+            em.merge(inst);
+            tx.commit();
+        } catch (RuntimeException ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
+    }
 }
+

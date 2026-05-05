@@ -60,3 +60,29 @@ export const batchDeleteUsers = async (ids: number[]): Promise<{ deleted: number
   const { data } = await api.post<ApiResponse<{ deleted: number }>>('/users/batch-delete', { ids });
   return data.data;
 };
+
+// ── Batch Transfer (VGS) ──
+
+export interface TransferredStudent {
+  username: string;
+  fullName: string;
+  program: string;
+  yearLevel: string;
+}
+
+export interface TransferResult {
+  transferred: number;
+  skipped: number;
+  total: number;
+  errors: string[];
+  transferredStudents: TransferredStudent[];
+}
+
+export const transferStudentsBatch = async (file: File): Promise<TransferResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<ApiResponse<TransferResult>>('/users/transfer', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.data;
+};

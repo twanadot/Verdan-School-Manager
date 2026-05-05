@@ -450,4 +450,289 @@ public class BatchImportService {
             this(created, skipped, total, errors, List.of());
         }
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  VGS Batch Transfer — move EXISTING students to a new institution
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * Transfer existing students to a new VGS institution via CSV/Excel.
+     * Unlike importStudents(), this does NOT create new users — it finds
+     * existing users by email/username and moves them.
+     *
+     * CSV format: epost (or brukernavn), linje, trinn
+     */
+    public TransferResult transferStudents(byte[] fileData, String fileName, int targetInstitutionId) {
+        List<TransferRow> rows;
+        String ext = fileName.toLowerCase();
+
+        try {
+            if (ext.endsWith(".xlsx") || ext.endsWith(".xls")) {
+                rows = parseTransferExcel(fileData);
+            } else if (ext.endsWith(".csv")) {
+                rows = parseTransferCsv(fileData);
+            } else {
+                return new TransferResult(0, 0, 0, List.of("Ugyldig filformat. Bruk .csv eller .xlsx"), List.of());
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to parse transfer file: {}", e.getMessage());
+            return new TransferResult(0, 0, 0, List.of("Kunne ikke lese filen."), List.of());
+        }
+
+        if (rows.isEmpty()) {
+            return new TransferResult(0, 0, 0, List.of("Filen inneholder ingen data"), List.of());
+        }
+
+        // Load all programs for the TARGET institution
+        List<Program> programs = programDao.findByInstitution(targetInstitutionId);
+        Map<String, Program> programMap = new HashMap<>();
+        for (Program p : programs) {
+            programMap.put(p.getName().toLowerCase().trim(), p);
+        }
+
+        // ── Phase 1: Validate ALL rows ──
+
+        List<String> errors = new ArrayList<>();
+        List<ValidatedTransferRow> validated = new ArrayList<>();
+        Set<String> identifiersInBatch = new HashSet<>();
+
+        for (int i = 0; i < rows.size(); i++) {
+            TransferRow row = rows.get(i);
+            int rowNum = i + 2;
+
+            // Must have at least an identifier
+            if ((row.email == null || row.email.isBlank()) && (row.username == null || row.username.isBlank())) {
+                errors.add("Rad " + rowNum + ": Epost eller brukernavn mangler");
+                continue;
+            }
+
+            // Check duplicate in file
+            String identifier = row.email != null && !row.email.isBlank()
+                ? row.email.trim().toLowerCase() : row.username.trim().toLowerCase();
+            if (!identifiersInBatch.add(identifier)) {
+                errors.add("Rad " + rowNum + ": " + identifier + " er duplikat i filen");
+                continue;
+            }
+
+            // Find the user
+            User user = null;
+            if (row.email != null && !row.email.isBlank()) {
+                List<User> found = userDao.findByEmail(row.email.trim());
+                if (!found.isEmpty()) user = found.get(0);
+            }
+            if (user == null && row.username != null && !row.username.isBlank()) {
+                List<User> found = userDao.findByUsername(row.username.trim());
+                if (!found.isEmpty()) user = found.get(0);
+            }
+            if (user == null) {
+                errors.add("Rad " + rowNum + ": Bruker '" + identifier + "' finnes ikke i systemet");
+                continue;
+            }
+
+            // Must be a student
+            if (!"STUDENT".equalsIgnoreCase(user.getRole())) {
+                errors.add("Rad " + rowNum + ": '" + identifier + "' er ikke en elev (rolle: " + user.getRole() + ")");
+                continue;
+            }
+
+            // Already at this institution?
+            if (user.getInstitution() != null && user.getInstitution().getId() == targetInstitutionId) {
+                errors.add("Rad " + rowNum + ": '" + identifier + "' tilhører allerede denne institusjonen");
+                continue;
+            }
+
+            // Validate linje (program)
+            if (row.linje == null || row.linje.isBlank()) {
+                errors.add("Rad " + rowNum + ": Linje mangler");
+                continue;
+            }
+            Program targetProgram = programMap.get(row.linje.trim().toLowerCase());
+            if (targetProgram == null) {
+                errors.add("Rad " + rowNum + ": Linje '" + row.linje + "' finnes ikke. Opprett programmet først.");
+                continue;
+            }
+
+            // ── Validate that the student is currently in the same linje ──
+            List<ProgramMember> currentMemberships = memberDao.findByUser(user.getId());
+            boolean matchesCurrentProgram = false;
+            String currentProgramName = null;
+            for (ProgramMember pm : currentMemberships) {
+                if (!pm.isGraduated() && pm.getProgram() != null) {
+                    currentProgramName = pm.getProgram().getName();
+                    if (pm.getProgram().getName().equalsIgnoreCase(row.linje.trim())) {
+                        matchesCurrentProgram = true;
+                        break;
+                    }
+                }
+            }
+            if (!matchesCurrentProgram) {
+                String hint = currentProgramName != null
+                    ? " (nåværende linje: " + currentProgramName + ")"
+                    : " (eleven er ikke tilknyttet noe program)";
+                errors.add("Rad " + rowNum + ": '" + identifier + "' kan kun overføres til samme linje" + hint);
+                continue;
+            }
+
+            // Validate trinn
+            if (row.trinn == null || row.trinn.isBlank()) {
+                errors.add("Rad " + rowNum + ": Trinn mangler (f.eks. VG1, VG2, VG3)");
+                continue;
+            }
+            String trinn = row.trinn.trim().toUpperCase();
+            if (!trinn.matches("VG[1-3].*")) {
+                errors.add("Rad " + rowNum + ": Ugyldig trinn '" + row.trinn + "'. Bruk VG1, VG2 eller VG3");
+                continue;
+            }
+
+            validated.add(new ValidatedTransferRow(row, user, targetProgram, trinn));
+        }
+
+        // Stop if any errors
+        if (!errors.isEmpty()) {
+            LOG.warn("Batch transfer rejected: {} errors in {} rows", errors.size(), rows.size());
+            return new TransferResult(0, errors.size(), rows.size(), errors, List.of());
+        }
+
+        // ── Phase 2: Transfer all students ──
+
+        int transferred = 0;
+        List<TransferredStudent> transferredStudents = new ArrayList<>();
+
+        for (ValidatedTransferRow vr : validated) {
+            User user = vr.user;
+
+            // Save old institution for transfer history
+            if (user.getInstitution() != null) {
+                user.setTransferredFromInstitutionId(user.getInstitution().getId());
+            }
+
+            // Change institution
+            Institution targetInst = new Institution();
+            targetInst.setId(targetInstitutionId);
+            user.setInstitution(targetInst);
+            userDao.update(user);
+
+            // Create ProgramMember
+            ProgramMember pm = new ProgramMember();
+            pm.setUser(user);
+            pm.setProgram(vr.program);
+            pm.setRole("STUDENT");
+            pm.setYearLevel(vr.trinn);
+            pm.setEnrolledAt(java.time.LocalDate.now());
+            memberDao.save(pm);
+
+            // Auto-assign subjects matching the year level
+            Program fullProg = programDao.findWithSubjects(vr.program.getId());
+            if (fullProg != null) {
+                no.example.verdan.dao.SubjectAssignmentDao assignDao = new no.example.verdan.dao.SubjectAssignmentDao();
+                for (Subject s : fullProg.getSubjects()) {
+                    if (vr.trinn.equals(s.getYearLevel())
+                            || s.getYearLevel() == null || s.getYearLevel().isBlank()) {
+                        assignDao.assignStudentToSubject(user.getUsername(), s.getCode(), targetInstitutionId);
+                    }
+                }
+            }
+
+            transferred++;
+            transferredStudents.add(new TransferredStudent(
+                user.getUsername(),
+                (user.getFirstName() != null ? user.getFirstName() : "") + " " +
+                (user.getLastName() != null ? user.getLastName() : ""),
+                vr.program.getName(), vr.trinn
+            ));
+
+            LOG.info("Batch transfer: moved '{}' to institution {} → program '{}' year '{}'",
+                user.getUsername(), targetInstitutionId, vr.program.getName(), vr.trinn);
+        }
+
+        LOG.info("Batch transfer complete: {} transferred out of {} rows", transferred, rows.size());
+        return new TransferResult(transferred, 0, rows.size(), List.of(), transferredStudents);
+    }
+
+    // ── Transfer parsing ──
+
+    private List<TransferRow> parseTransferCsv(byte[] data) throws IOException {
+        List<TransferRow> rows = new ArrayList<>();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(data), "UTF-8"));
+
+        String headerLine = reader.readLine();
+        if (headerLine == null) return rows;
+
+        char sep = headerLine.contains(";") ? ';' : ',';
+        String[] headers = headerLine.split(String.valueOf(sep));
+        Map<String, Integer> colMap = buildTransferColumnMap(headers);
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.isBlank()) continue;
+            String[] parts = line.split(String.valueOf(sep), -1);
+            rows.add(transferRowFromParts(parts, colMap));
+        }
+        return rows;
+    }
+
+    private List<TransferRow> parseTransferExcel(byte[] data) throws IOException {
+        List<TransferRow> rows = new ArrayList<>();
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(data))) {
+            Sheet sheet = wb.getSheetAt(0);
+            if (sheet == null) return rows;
+
+            Row headerRow = sheet.getRow(0);
+            if (headerRow == null) return rows;
+
+            String[] headers = new String[headerRow.getLastCellNum()];
+            for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                headers[i] = cellToString(headerRow.getCell(i));
+            }
+            Map<String, Integer> colMap = buildTransferColumnMap(headers);
+
+            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+                String[] parts = new String[row.getLastCellNum()];
+                for (int c = 0; c < row.getLastCellNum(); c++) {
+                    parts[c] = cellToString(row.getCell(c));
+                }
+                TransferRow tr = transferRowFromParts(parts, colMap);
+                if ((tr.email != null && !tr.email.isBlank()) || (tr.username != null && !tr.username.isBlank())) {
+                    rows.add(tr);
+                }
+            }
+        }
+        return rows;
+    }
+
+    private Map<String, Integer> buildTransferColumnMap(String[] headers) {
+        Map<String, Integer> map = new HashMap<>();
+        for (int i = 0; i < headers.length; i++) {
+            String h = headers[i].trim().toLowerCase()
+                .replace("ø", "o").replace("å", "a").replace("æ", "ae");
+            if (h.contains("epost") || h.contains("e-post") || h.equals("email") || h.equals("e_post"))
+                map.put("email", i);
+            else if (h.contains("brukernavn") || h.equals("username") || h.equals("bruker"))
+                map.put("username", i);
+            else if (h.contains("linje") || h.equals("program") || h.equals("studieretning") || h.equals("line"))
+                map.put("linje", i);
+            else if (h.contains("trinn") || h.equals("yearlevel") || h.equals("year_level") || h.equals("year") || h.equals("level"))
+                map.put("trinn", i);
+        }
+        return map;
+    }
+
+    private TransferRow transferRowFromParts(String[] parts, Map<String, Integer> colMap) {
+        return new TransferRow(
+            getCol(parts, colMap, "email"),
+            getCol(parts, colMap, "username"),
+            getCol(parts, colMap, "linje"),
+            getCol(parts, colMap, "trinn")
+        );
+    }
+
+    // ── Transfer DTOs ──
+
+    public record TransferRow(String email, String username, String linje, String trinn) {}
+    private record ValidatedTransferRow(TransferRow row, User user, Program program, String trinn) {}
+    public record TransferredStudent(String username, String fullName, String program, String yearLevel) {}
+    public record TransferResult(int transferred, int skipped, int total, List<String> errors,
+                                  List<TransferredStudent> transferredStudents) {}
 }

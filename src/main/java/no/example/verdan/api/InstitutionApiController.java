@@ -23,8 +23,10 @@ public class InstitutionApiController {
 
     public void registerRoutes(Javalin app) {
         app.get("/api/institutions", this::getAll);
+        app.get("/api/institutions/inactive", this::getAllInactive);
         app.post("/api/institutions", this::create);
         app.put("/api/institutions/{id}", this::update);
+        app.put("/api/institutions/{id}/reactivate", this::reactivate);
         app.delete("/api/institutions/{id}", this::softDelete);
     }
 
@@ -83,4 +85,20 @@ public class InstitutionApiController {
         LOG.info("Institution soft-deleted (ID: {})", id);
         ctx.status(204);
     }
+
+    /** GET /api/institutions/inactive – List deactivated institutions (SUPER_ADMIN only). */
+    private void getAllInactive(Context ctx) {
+        AuthMiddleware.requireSuperAdmin(ctx);
+        ctx.json(ApiResponse.ok(institutionDao.findAllInactive()));
+    }
+
+    /** PUT /api/institutions/{id}/reactivate – Reactivate a soft-deleted institution (SUPER_ADMIN only). */
+    private void reactivate(Context ctx) {
+        AuthMiddleware.requireSuperAdmin(ctx);
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        institutionDao.reactivate(id);
+        LOG.info("Institution reactivated (ID: {})", id);
+        ctx.json(ApiResponse.ok("Institution reactivated"));
+    }
 }
+

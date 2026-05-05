@@ -18,6 +18,7 @@ export interface PromotionPreview {
   promotions: PromotionAction[];
   graduations: PromotionAction[];
   level: string;
+  missingClasses: string[];
 }
 
 export interface PromotionResult {

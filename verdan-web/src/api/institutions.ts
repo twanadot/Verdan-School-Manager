@@ -26,3 +26,12 @@ export const updateInstitution = async (
 export const deleteInstitution = async (id: number): Promise<void> => {
   await api.delete(`/institutions/${id}`);
 };
+
+export const getInactiveInstitutions = async (): Promise<Institution[]> => {
+  const { data } = await api.get('/institutions/inactive');
+  return data.data;
+};
+
+export const reactivateInstitution = async (id: number): Promise<void> => {
+  await api.put(`/institutions/${id}/reactivate`);
+};

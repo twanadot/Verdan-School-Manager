@@ -202,8 +202,8 @@ export const deleteAdmissionPeriod = async (id: number) => {
   await api.delete(`/admissions/periods/${id}`);
 };
 
-export const reopenAdmissionPeriod = async (id: number) => {
-  await api.put(`/admissions/periods/${id}/reopen`);
+export const reopenAdmissionPeriod = async (id: number, newEndDate?: string) => {
+  await api.put(`/admissions/periods/${id}/reopen`, { newEndDate });
 };
 
 export const bulkPublishPrograms = async (periodId: number, programIds: number[]) => {

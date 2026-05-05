@@ -2,9 +2,11 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getInstitutions,
+  getInactiveInstitutions,
   createInstitution,
   updateInstitution,
   deleteInstitution,
+  reactivateInstitution,
 } from '../api/institutions';
 import { PageHeader } from '../components/PageHeader';
 import { LoadingState, EmptyState } from '../components/LoadingState';
@@ -20,6 +22,7 @@ import {
   School,
   BookOpen,
   Building,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Institution, InstitutionLevel } from '../types';
@@ -68,11 +71,19 @@ export function InstitutionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Institution | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Institution | null>(null);
+  const [confirmReactivate, setConfirmReactivate] = useState<Institution | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
 
   const { data: institutions = [], isLoading } = useQuery({
     queryKey: ['institutions'],
     queryFn: getInstitutions,
+  });
+
+  const { data: inactiveInstitutions = [] } = useQuery({
+    queryKey: ['institutions-inactive'],
+    queryFn: getInactiveInstitutions,
+    enabled: showInactive,
   });
 
   // Filter by search
@@ -106,10 +117,25 @@ export function InstitutionsPage() {
       await deleteInstitution(confirmDelete.id);
       toast.success(`"${confirmDelete.name}" er deaktivert`);
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({ queryKey: ['institutions-inactive'] });
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Kunne ikke deaktivere');
     } finally {
       setConfirmDelete(null);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!confirmReactivate) return;
+    try {
+      await reactivateInstitution(confirmReactivate.id);
+      toast.success(`"${confirmReactivate.name}" er reaktivert`);
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({ queryKey: ['institutions-inactive'] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Kunne ikke reaktivere');
+    } finally {
+      setConfirmReactivate(null);
     }
   };
 
@@ -133,9 +159,9 @@ export function InstitutionsPage() {
         }
       />
 
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      {/* Search + inactive toggle */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="relative max-w-md flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             value={search}
@@ -144,6 +170,17 @@ export function InstitutionsPage() {
             className="w-full pl-9 pr-4 py-2.5 bg-bg-secondary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-focus transition-colors"
           />
         </div>
+        <button
+          onClick={() => setShowInactive(!showInactive)}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-colors ${
+            showInactive
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              : 'bg-bg-secondary border-border text-text-secondary hover:border-border-focus'
+          }`}
+        >
+          <RotateCcw size={14} />
+          Vis deaktiverte
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -269,8 +306,8 @@ export function InstitutionsPage() {
               <strong className="text-text-primary">"{confirmDelete.name}"</strong>?
             </p>
             <p className="text-xs text-text-muted mb-5">
-              Brukere som tilhører denne institusjonen beholder tilknytningen sin som historisk
-              referanse, men institusjonen forsvinner fra valglistene.
+              Ansatte (administratorer og lærere) mister tilgang umiddelbart. Elever beholder
+              tilgang til søknadsportalen for å kunne bytte skole.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -284,6 +321,105 @@ export function InstitutionsPage() {
                 className="px-4 py-2 text-sm font-medium bg-danger hover:bg-danger/80 text-white rounded-lg transition-colors"
               >
                 Deaktiver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deactivated institutions section */}
+      {showInactive && inactiveInstitutions.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg text-amber-400 bg-amber-400/10">
+              <RotateCcw size={20} />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-text-primary">Deaktiverte institusjoner</h2>
+              <p className="text-xs text-text-muted">
+                {inactiveInstitutions.length} {inactiveInstitutions.length === 1 ? 'institusjon' : 'institusjoner'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-2">
+            {inactiveInstitutions.map((inst) => (
+              <div
+                key={inst.id}
+                className="bg-bg-secondary/50 p-4 rounded-xl border border-border opacity-60 group hover:opacity-80 transition-opacity"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2 rounded-lg shrink-0 text-text-muted bg-bg-hover">
+                      <Building2 size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-text-secondary text-sm truncate">
+                        {inst.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-text-muted flex items-center gap-1">
+                          <MapPin size={11} /> {inst.location || 'Ingen lokasjon'}
+                        </p>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-danger/10 text-danger">
+                          Deaktivert
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                    <button
+                      onClick={() => setConfirmReactivate(inst)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors"
+                      title="Reaktiver"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showInactive && inactiveInstitutions.length === 0 && (
+        <div className="mt-8">
+          <EmptyState
+            title="Ingen deaktiverte institusjoner"
+            message="Det finnes ingen deaktiverte institusjoner å vise"
+          />
+        </div>
+      )}
+
+      {/* Reactivation confirmation dialog */}
+      {confirmReactivate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmReactivate(null)}
+          />
+          <div className="relative bg-bg-secondary border border-border rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-lg font-semibold text-text-primary mb-2">Reaktiver institusjon</h2>
+            <p className="text-sm text-text-secondary mb-2">
+              Vil du reaktivere{' '}
+              <strong className="text-text-primary">"{confirmReactivate.name}"</strong>?
+            </p>
+            <p className="text-xs text-text-muted mb-5">
+              Ansatte (administratorer og lærere) vil få tilbake tilgangen sin umiddelbart.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmReactivate(null)}
+                className="px-4 py-2 text-sm font-medium border border-border rounded-lg text-text-secondary hover:bg-bg-hover transition-colors"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleReactivate}
+                className="px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors"
+              >
+                Reaktiver
               </button>
             </div>
           </div>
